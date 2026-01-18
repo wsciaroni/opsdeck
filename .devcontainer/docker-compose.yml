@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: opsdeck-dev
+    image: mcr.microsoft.com/devcontainers/go:1-1.24-bookworm
+    volumes:
+      - ../:/workspace:cached
+    # Keeps the container running indefinitely so VS Code can attach to it
+    command: sleep infinity
+    working_dir: /workspace
+    # heavily implies the network needs to talk to db/redis
+    links:
+      - db
+      - redis
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: opsdeck
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
