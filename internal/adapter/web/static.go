@@ -2,6 +2,7 @@ package web
 
 import (
 	"io/fs"
+	"log"
 	"net/http"
 	"path"
 
@@ -20,10 +21,12 @@ func NewStaticHandler(fs fs.FS) *StaticHandler {
 // static files from a http.FileSystem.
 func (h *StaticHandler) Register(r chi.Router) {
 	if _, err := fs.Stat(h.fs, "index.html"); err != nil {
+		// TODO: handle this specific error case later
 		// If index.html is missing, it might be in a subdirectory (e.g. dist)
 		// but here we expect the root of h.fs to contain index.html
 		// For now we will assume the passed fs is correct.
 		// In a real scenario we might want to panic or log error if the embedded fs is empty.
+		log.Printf("warning: index.html not found in the provided filesystem: %v", err)
 	}
 
 	fileServer := http.FileServer(http.FS(h.fs))
@@ -46,7 +49,9 @@ func (h *StaticHandler) Register(r chi.Router) {
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(content)
+		if _, err := w.Write(content); err != nil {
+			log.Printf("failed to write response: %v", err)
+		}
 	})
 }
 
@@ -63,7 +68,9 @@ func fileExists(fileSystem fs.FS, filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	s, err := f.Stat()
 	if err != nil {
