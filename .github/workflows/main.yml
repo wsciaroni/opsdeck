@@ -48,8 +48,8 @@ jobs:
 
       - name: Create Fake Frontend Assets (Satisfy go:embed)
         run: |
-          mkdir -p web/dist
-          touch web/dist/.keep
+          mkdir -p cmd/server/dist
+          touch cmd/server/dist/.keep
 
       - name: Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v3
