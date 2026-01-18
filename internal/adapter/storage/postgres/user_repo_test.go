@@ -36,7 +36,9 @@ func TestUserRepository(t *testing.T) {
 
 	// Cleanup
 	defer func() {
-		pool.Exec(ctx, "TRUNCATE TABLE users")
+		if _, err := pool.Exec(ctx, "TRUNCATE TABLE users"); err != nil {
+			t.Logf("Failed to cleanup users table: %v", err)
+		}
 	}()
 
 	repo := NewUserRepository(pool)
