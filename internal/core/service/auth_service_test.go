@@ -43,6 +43,29 @@ func (m *MockUserRepository) Update(ctx context.Context, user *domain.User) erro
 	return args.Error(0)
 }
 
+// MockOrganizationRepository is a mock implementation of port.OrganizationRepository
+type MockOrganizationRepository struct {
+	mock.Mock
+}
+
+func (m *MockOrganizationRepository) Create(ctx context.Context, org *domain.Organization) error {
+	args := m.Called(ctx, org)
+	return args.Error(0)
+}
+
+func (m *MockOrganizationRepository) AddMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error {
+	args := m.Called(ctx, orgID, userID, role)
+	return args.Error(0)
+}
+
+func (m *MockOrganizationRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.UserMembership), args.Error(1)
+}
+
 // MockOIDCProvider is a mock implementation of port.OIDCProvider
 type MockOIDCProvider struct {
 	mock.Mock
@@ -63,9 +86,10 @@ func (m *MockOIDCProvider) ExchangeCode(ctx context.Context, code string) (*port
 
 func TestGetLoginURL(t *testing.T) {
 	mockRepo := new(MockUserRepository)
+	mockOrgRepo := new(MockOrganizationRepository)
 	mockOIDC := new(MockOIDCProvider)
 	logger := slog.Default()
-	service := NewAuthService(mockRepo, mockOIDC, logger)
+	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
 	expectedURL := "https://accounts.google.com/o/oauth2/auth?state=state-random-string"
 	mockOIDC.On("AuthCodeURL", "state-random-string").Return(expectedURL)
@@ -77,9 +101,10 @@ func TestGetLoginURL(t *testing.T) {
 
 func TestLoginFromProvider_NewUser(t *testing.T) {
 	mockRepo := new(MockUserRepository)
+	mockOrgRepo := new(MockOrganizationRepository)
 	mockOIDC := new(MockOIDCProvider)
 	logger := slog.Default()
-	service := NewAuthService(mockRepo, mockOIDC, logger)
+	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
 	ctx := context.Background()
 	code := "test-code"
@@ -95,6 +120,14 @@ func TestLoginFromProvider_NewUser(t *testing.T) {
 		return u.Email == userInfo.Email && u.Name == userInfo.Name && u.AvatarURL == userInfo.AvatarURL && u.Role == domain.RolePublic
 	})).Return(nil)
 
+	// Expect Org Creation
+	mockOrgRepo.On("Create", ctx, mock.MatchedBy(func(o *domain.Organization) bool {
+		return o.Name == "Personal Workspace"
+	})).Return(nil)
+
+	// Expect Add Member
+	mockOrgRepo.On("AddMember", ctx, mock.AnythingOfType("uuid.UUID"), mock.AnythingOfType("uuid.UUID"), "owner").Return(nil)
+
 	user, err := service.LoginFromProvider(ctx, code)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
@@ -103,13 +136,15 @@ func TestLoginFromProvider_NewUser(t *testing.T) {
 
 	mockOIDC.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
+	mockOrgRepo.AssertExpectations(t)
 }
 
 func TestLoginFromProvider_ExistingUser_NoUpdate(t *testing.T) {
 	mockRepo := new(MockUserRepository)
+	mockOrgRepo := new(MockOrganizationRepository)
 	mockOIDC := new(MockOIDCProvider)
 	logger := slog.Default()
-	service := NewAuthService(mockRepo, mockOIDC, logger)
+	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
 	ctx := context.Background()
 	code := "test-code"
@@ -139,9 +174,10 @@ func TestLoginFromProvider_ExistingUser_NoUpdate(t *testing.T) {
 
 func TestLoginFromProvider_ExistingUser_WithUpdate(t *testing.T) {
 	mockRepo := new(MockUserRepository)
+	mockOrgRepo := new(MockOrganizationRepository)
 	mockOIDC := new(MockOIDCProvider)
 	logger := slog.Default()
-	service := NewAuthService(mockRepo, mockOIDC, logger)
+	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
 	ctx := context.Background()
 	code := "test-code"
@@ -175,9 +211,10 @@ func TestLoginFromProvider_ExistingUser_WithUpdate(t *testing.T) {
 
 func TestCreateSession(t *testing.T) {
 	mockRepo := new(MockUserRepository)
+	mockOrgRepo := new(MockOrganizationRepository)
 	mockOIDC := new(MockOIDCProvider)
 	logger := slog.Default()
-	service := NewAuthService(mockRepo, mockOIDC, logger)
+	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
 	ctx := context.Background()
 	user := &domain.User{

@@ -84,11 +84,12 @@ func main() {
 
 	// Init Auth
 	repo := postgres.NewUserRepository(pool)
+	orgRepo := postgres.NewOrganizationRepository(pool)
 	oidcProvider, err := google.NewGoogleProvider(ctx, googleClientID, googleClientSecret, googleCallbackURL)
 	if err != nil {
 		log.Fatalf("Failed to create OIDC provider: %v", err)
 	}
-	authService := service.NewAuthService(repo, oidcProvider, logger)
+	authService := service.NewAuthService(repo, orgRepo, oidcProvider, logger)
 	authHandler := handler.NewAuthHandler(authService, logger)
 
 	// Setup Router
