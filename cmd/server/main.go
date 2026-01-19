@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage"
+	"github.com/wsciaroni/opsdeck/internal/adapter/storage/postgres"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web"
 )
 
@@ -30,7 +31,7 @@ func main() {
 	}()
 
 	// Connect to Database
-	pool, err := storage.ConnectPostgres(ctx)
+	pool, err := postgres.ConnectPostgres(ctx)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
