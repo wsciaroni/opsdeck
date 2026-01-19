@@ -31,11 +31,11 @@ func NewRouter(
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
 		r.Method(http.MethodGet, "/health", NewHealthHandler(db))
-		r.Get("/me", authHandler.Me)
 
 		// Protected Routes
 		r.Group(func(r chi.Router) {
 			r.Use(authMW.Protect)
+			r.Get("/me", authHandler.Me)
 			r.Post("/tickets", ticketHandler.CreateTicket)
 			r.Get("/tickets", ticketHandler.ListTickets)
 			r.Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
