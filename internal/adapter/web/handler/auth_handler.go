@@ -1,22 +1,27 @@
 package handler
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
+	"github.com/wsciaroni/opsdeck/internal/core/domain"
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
 
 type AuthHandler struct {
 	service port.AuthService
+	orgRepo port.OrganizationRepository
 	logger  *slog.Logger
 }
 
-func NewAuthHandler(service port.AuthService, logger *slog.Logger) *AuthHandler {
+func NewAuthHandler(service port.AuthService, orgRepo port.OrganizationRepository, logger *slog.Logger) *AuthHandler {
 	return &AuthHandler{
 		service: service,
+		orgRepo: orgRepo,
 		logger:  logger,
 	}
 }
@@ -67,10 +72,33 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
+type MeResponse struct {
+	User          *domain.User            `json:"user"`
+	Organizations []domain.UserMembership `json:"organizations"`
+}
+
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	organizations, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	if err != nil {
+		h.logger.Error("failed to list user organizations", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := MeResponse{
+		User:          user,
+		Organizations: organizations,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte(`{"status": "guest"}`)); err != nil {
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error("failed to write response", "error", err)
 	}
 }

@@ -18,11 +18,11 @@ const (
 
 // User represents a user in the system.
 type User struct {
-	ID        uuid.UUID
-	Email     string
-	Name      string
-	Role      Role
-	AvatarURL string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	Role      Role      `json:"role"`
+	AvatarURL string    `json:"avatar_url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

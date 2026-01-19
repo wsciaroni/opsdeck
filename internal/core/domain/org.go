@@ -8,23 +8,23 @@ import (
 
 // Organization represents a workspace or tenant.
 type Organization struct {
-	ID        uuid.UUID
-	Name      string
-	Slug      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // OrganizationMember represents the link between a user and an organization.
 type OrganizationMember struct {
-	OrganizationID uuid.UUID
-	UserID         uuid.UUID
-	Role           string
-	JoinedAt       time.Time
+	OrganizationID uuid.UUID `json:"organization_id"`
+	UserID         uuid.UUID `json:"user_id"`
+	Role           string    `json:"role"`
+	JoinedAt       time.Time `json:"joined_at"`
 }
 
 // UserMembership represents a user's membership in an organization, including the organization details and their role.
 type UserMembership struct {
 	Organization
-	Role string
+	Role string `json:"role"`
 }

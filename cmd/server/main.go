@@ -91,7 +91,7 @@ func main() {
 		log.Fatalf("Failed to create OIDC provider: %v", err)
 	}
 	authService := service.NewAuthService(repo, orgRepo, oidcProvider, logger)
-	authHandler := handler.NewAuthHandler(authService, logger)
+	authHandler := handler.NewAuthHandler(authService, orgRepo, logger)
 
 	// Init Ticket
 	ticketRepo := postgres.NewTicketRepository(pool)

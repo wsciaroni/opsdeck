@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { AuthProvider, useAuth } from './context/AuthContext';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+function Dashboard() {
+  const { user, currentOrg, login } = useAuth();
+
+  if (!user) {
+    return (
+      <div className="login-container">
+        <h1>OpsDeck</h1>
+        <button onClick={login} className="login-button">
+          Login with Google
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="dashboard-container">
+      <h1>Welcome, {user.name}!</h1>
+      {currentOrg ? (
+        <p>Current Workspace: <strong>{currentOrg.name}</strong></p>
+      ) : (
+        <p>No workspace selected.</p>
+      )}
+    </div>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <AuthProvider>
+      <MainContent />
+    </AuthProvider>
+  );
+}
+
+function MainContent() {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return <Dashboard />;
+}
+
+export default App;

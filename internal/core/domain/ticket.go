@@ -25,18 +25,18 @@ const (
 
 // Ticket represents a support ticket in the system.
 type Ticket struct {
-	ID             uuid.UUID
-	OrganizationID uuid.UUID
-	Title          string
-	Description    string
-	Location       string
-	StatusID       string
-	PriorityID     string
-	ReporterID     uuid.UUID
-	AssigneeUserID *uuid.UUID
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	CompletedAt    *time.Time
+	ID             uuid.UUID  `json:"id"`
+	OrganizationID uuid.UUID  `json:"organization_id"`
+	Title          string     `json:"title"`
+	Description    string     `json:"description"`
+	Location       string     `json:"location"`
+	StatusID       string     `json:"status_id"`
+	PriorityID     string     `json:"priority_id"`
+	ReporterID     uuid.UUID  `json:"reporter_id"`
+	AssigneeUserID *uuid.UUID `json:"assignee_user_id"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+	CompletedAt    *time.Time `json:"completed_at"`
 }
 
 // TicketStatus represents a valid status for a ticket.
