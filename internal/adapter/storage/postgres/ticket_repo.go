@@ -115,7 +115,6 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 	if filter.ReporterID != nil {
 		query += fmt.Sprintf(" AND reporter_id = $%d", argIdx)
 		args = append(args, *filter.ReporterID)
-		argIdx++
 	}
 
 	query += " ORDER BY created_at DESC"
