@@ -10,26 +10,6 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
 
-// CreateTicketCmd defines the command to create a new ticket.
-type CreateTicketCmd struct {
-	OrganizationID uuid.UUID
-	ReporterID     uuid.UUID
-	Title          string
-	Description    string
-	Location       string
-	PriorityID     string
-}
-
-// UpdateTicketCmd defines the command to update an existing ticket.
-type UpdateTicketCmd struct {
-	StatusID       *string
-	PriorityID     *string
-	AssigneeUserID *uuid.UUID
-	Title          *string
-	Description    *string
-	Location       *string
-}
-
 // TicketService implements business logic for ticket management.
 type TicketService struct {
 	repo port.TicketRepository
@@ -40,8 +20,13 @@ func NewTicketService(repo port.TicketRepository) *TicketService {
 	return &TicketService{repo: repo}
 }
 
+// GetTicket retrieves a ticket by its ID.
+func (s *TicketService) GetTicket(ctx context.Context, id uuid.UUID) (*domain.Ticket, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
 // CreateTicket creates a new ticket.
-func (s *TicketService) CreateTicket(ctx context.Context, cmd CreateTicketCmd) (*domain.Ticket, error) {
+func (s *TicketService) CreateTicket(ctx context.Context, cmd port.CreateTicketCmd) (*domain.Ticket, error) {
 	if cmd.Title == "" {
 		return nil, fmt.Errorf("title is required")
 	}
@@ -68,7 +53,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, cmd CreateTicketCmd) (
 }
 
 // UpdateTicket updates an existing ticket.
-func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd UpdateTicketCmd) (*domain.Ticket, error) {
+func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port.UpdateTicketCmd) (*domain.Ticket, error) {
 	ticket, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ticket: %w", err)
@@ -118,14 +103,6 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd Upda
 			ticket.CompletedAt = nil
 		}
 	}
-	// Note: If transitioning from Done to anything other than New (e.g. InProgress),
-	// the requirement didn't specify clearing CompletedAt.
-	// But logically, if it's not done/canceled, it's not complete.
-	// However, following the strict requirement:
-	// "If Status changes from 'done' to 'new', set CompletedAt = nil."
-	// The above logic satisfies this.
-	// And "If Status changes to 'done' or 'canceled', automatically set CompletedAt = time.Now()."
-	// Also satisfied.
 
 	ticket.UpdatedAt = time.Now()
 

@@ -16,6 +16,7 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage/postgres"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web/handler"
+	"github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
 	"github.com/wsciaroni/opsdeck/internal/core/service"
 )
 
@@ -92,8 +93,16 @@ func main() {
 	authService := service.NewAuthService(repo, orgRepo, oidcProvider, logger)
 	authHandler := handler.NewAuthHandler(authService, logger)
 
+	// Init Ticket
+	ticketRepo := postgres.NewTicketRepository(pool)
+	ticketService := service.NewTicketService(ticketRepo)
+	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, logger)
+
+	// Init Middleware
+	authMiddleware := middleware.NewAuthMiddleware(repo, logger)
+
 	// Setup Router
-	router := web.NewRouter(pool, staticFS, authHandler)
+	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, authMiddleware)
 
 	// Start Server
 	srv := &http.Server{
