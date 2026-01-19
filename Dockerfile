@@ -19,7 +19,10 @@ COPY --from=frontend /app/web/dist ./cmd/server/dist
 RUN go build -o main cmd/server/main.go
 
 # Stage 3: Final Image
-FROM alpine:3.19
+FROM alpine:3.23
 WORKDIR /app
+RUN addgroup -S -g 10001 nonroot \
+    && adduser -S -u 10001 -G nonroot nonroot
 COPY --from=backend /app/main .
+USER nonroot
 CMD ["./main"]
