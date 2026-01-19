@@ -9,10 +9,14 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"log/slog"
 
+	"github.com/wsciaroni/opsdeck/internal/adapter/auth/google"
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage"
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage/postgres"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web"
+	"github.com/wsciaroni/opsdeck/internal/adapter/web/handler"
+	"github.com/wsciaroni/opsdeck/internal/core/service"
 )
 
 //go:embed all:dist
@@ -54,8 +58,28 @@ func main() {
 		log.Fatalf("Failed to create sub FS for frontend: %v", err)
 	}
 
+	// Config
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	googleCallbackURL := os.Getenv("GOOGLE_CALLBACK_URL")
+
+	if googleClientID == "" || googleClientSecret == "" || googleCallbackURL == "" {
+		log.Fatal("Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL")
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	// Init Auth
+	repo := postgres.NewUserRepository(pool)
+	oidcProvider, err := google.NewGoogleProvider(ctx, googleClientID, googleClientSecret, googleCallbackURL)
+	if err != nil {
+		log.Fatalf("Failed to create OIDC provider: %v", err)
+	}
+	authService := service.NewAuthService(repo, oidcProvider, logger)
+	authHandler := handler.NewAuthHandler(authService, logger)
+
 	// Setup Router
-	router := web.NewRouter(pool, staticFS)
+	router := web.NewRouter(pool, staticFS, authHandler)
 
 	// Start Server
 	srv := &http.Server{
