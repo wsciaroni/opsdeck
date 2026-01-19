@@ -72,6 +72,26 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	secure := true
+	if os.Getenv("APP_ENV") == "development" {
+		secure = false
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-1 * time.Hour),
+	})
+
+	w.WriteHeader(http.StatusOK)
+}
+
 type MeResponse struct {
 	User          *domain.User            `json:"user"`
 	Organizations []domain.UserMembership `json:"organizations"`
