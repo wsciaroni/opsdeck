@@ -27,6 +27,7 @@ func NewRouter(
 	// Auth Routes
 	r.Get("/auth/login", authHandler.Login)
 	r.Get("/auth/callback", authHandler.Callback)
+	r.Post("/auth/logout", authHandler.Logout)
 
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
