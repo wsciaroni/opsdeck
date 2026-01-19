@@ -49,9 +49,9 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secure := false
-	if os.Getenv("APP_ENV") == "production" {
-		secure = true
+	secure := true
+	if os.Getenv("APP_ENV") == "development" {
+		secure = false
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -70,5 +70,7 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "guest"}`))
+	if _, err := w.Write([]byte(`{"status": "guest"}`)); err != nil {
+		h.logger.Error("failed to write response", "error", err)
+	}
 }
