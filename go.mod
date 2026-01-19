@@ -18,6 +18,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.30.0 // indirect
 	github.com/riverqueue/river/rivershared v0.30.0 // indirect
 	github.com/riverqueue/river/rivertype v0.30.0 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
