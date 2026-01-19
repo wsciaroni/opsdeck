@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
@@ -12,17 +16,19 @@ import (
 
 // AuthService implements port.AuthService.
 type AuthService struct {
-	repo   port.UserRepository
-	oidc   port.OIDCProvider
-	logger *slog.Logger
+	repo    port.UserRepository
+	orgRepo port.OrganizationRepository
+	oidc    port.OIDCProvider
+	logger  *slog.Logger
 }
 
 // NewAuthService creates a new AuthService.
-func NewAuthService(repo port.UserRepository, oidc port.OIDCProvider, logger *slog.Logger) *AuthService {
+func NewAuthService(repo port.UserRepository, orgRepo port.OrganizationRepository, oidc port.OIDCProvider, logger *slog.Logger) *AuthService {
 	return &AuthService{
-		repo:   repo,
-		oidc:   oidc,
-		logger: logger,
+		repo:    repo,
+		orgRepo: orgRepo,
+		oidc:    oidc,
+		logger:  logger,
 	}
 }
 
@@ -43,10 +49,6 @@ func (s *AuthService) LoginFromProvider(ctx context.Context, code string) (*doma
 	// Step 2: Check if user exists
 	user, err := s.repo.GetByEmail(ctx, userInfo.Email)
 	if err != nil {
-		// Assuming repository returns nil, nil for not found as per guidelines.
-		// If it returns a real error (like DB connection fail), we should fail.
-		// However, I need to know if GetByEmail returns error on "not found" or just nil, nil.
-		// The memory says: "Repository retrieval methods must return nil, nil instead of an error when a record is not found".
 		return nil, fmt.Errorf("failed to check user existence: %w", err)
 	}
 
@@ -65,6 +67,29 @@ func (s *AuthService) LoginFromProvider(ctx context.Context, code string) (*doma
 			return nil, fmt.Errorf("failed to create new user: %w", err)
 		}
 		s.logger.Info("provisioning new user", "user_id", newUser.ID, "email", newUser.Email)
+
+		// Create Default Organization
+		orgName := "Personal Workspace"
+		orgSlug, err := generateSlug(orgName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate org slug: %w", err)
+		}
+
+		newOrg := &domain.Organization{
+			Name: orgName,
+			Slug: orgSlug,
+		}
+
+		if err := s.orgRepo.Create(ctx, newOrg); err != nil {
+			return nil, fmt.Errorf("failed to create default organization: %w", err)
+		}
+
+		// Add User as Owner
+		if err := s.orgRepo.AddMember(ctx, newOrg.ID, newUser.ID, "owner"); err != nil {
+			return nil, fmt.Errorf("failed to add user to organization: %w", err)
+		}
+		s.logger.Info("created default organization", "org_id", newOrg.ID, "user_id", newUser.ID)
+
 		return newUser, nil
 	}
 
@@ -92,4 +117,23 @@ func (s *AuthService) LoginFromProvider(ctx context.Context, code string) (*doma
 func (s *AuthService) CreateSession(ctx context.Context, user *domain.User) (string, error) {
 	// For now, we simply return the user ID as the session token.
 	return user.ID.String(), nil
+}
+
+func generateSlug(name string) (string, error) {
+	// slugify(name) + "-" + randomHex(4)
+	lowerName := strings.ToLower(name)
+	reg, err := regexp.Compile("[^a-z0-9]+")
+	if err != nil {
+		return "", err
+	}
+	slugBase := reg.ReplaceAllString(lowerName, "-")
+	slugBase = strings.Trim(slugBase, "-")
+
+	bytes := make([]byte, 2) // 2 bytes = 4 hex chars
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	randomSuffix := hex.EncodeToString(bytes)
+
+	return fmt.Sprintf("%s-%s", slugBase, randomSuffix), nil
 }

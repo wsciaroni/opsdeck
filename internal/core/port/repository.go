@@ -14,3 +14,10 @@ type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
 }
+
+// OrganizationRepository defines the interface for interacting with organization data.
+type OrganizationRepository interface {
+	Create(ctx context.Context, org *domain.Organization) error
+	AddMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error
+	ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error)
+}
