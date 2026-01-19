@@ -1,5 +1,10 @@
 # OpsDeck
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=wsciaroni_opsdeck&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=wsciaroni_opsdeck)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wsciaroni/opsdeck)](https://goreportcard.com/report/github.com/wsciaroni/opsdeck)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/wsciaroni/opsdeck/main.yml?branch=master)](https://github.com/wsciaroni/opsdeck/actions)
+[![License](https://img.shields.io/github/license/wsciaroni/opsdeck)](LICENSE)
+
 <!--
 [![Go Report Card](https://goreportcard.com/badge/github.com/wsciaroni/opsdeck)](https://goreportcard.com/report/github.com/wsciaroni/opsdeck)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/wsciaroni/opsdeck/ci.yml?branch=main)](https://github.com/wsciaroni/opsdeck/actions)
