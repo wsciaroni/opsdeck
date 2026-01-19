@@ -20,7 +20,7 @@ type TicketHandler struct {
 type CreateTicketRequest struct {
 	Title          string    `json:"title"`
 	Description    string    `json:"description"`
-	Priority       string    `json:"priority"`
+	Priority       string    `json:"priority_id"`
 	OrganizationID uuid.UUID `json:"organization_id"`
 	Location       string    `json:"location"`
 }
