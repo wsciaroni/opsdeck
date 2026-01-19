@@ -34,6 +34,19 @@ func main() {
 		cancel()
 	}()
 
+	// Database Configuration
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+
+	// Run Database Migrations
+	log.Println("Running database migrations...")
+	if err := postgres.RunMigrations(ctx, databaseURL); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
+	log.Println("Database migrations completed successfully")
+
 	// Connect to Database
 	pool, err := postgres.ConnectPostgres(ctx)
 	if err != nil {
