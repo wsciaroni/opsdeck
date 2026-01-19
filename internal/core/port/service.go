@@ -10,4 +10,5 @@ import (
 type AuthService interface {
 	GetLoginURL() string
 	LoginFromProvider(ctx context.Context, code string) (*domain.User, error)
+	CreateSession(ctx context.Context, user *domain.User) (string, error)
 }
