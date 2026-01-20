@@ -66,6 +66,19 @@ func (m *MockOrganizationRepository) ListByUser(ctx context.Context, userID uuid
 	return args.Get(0).([]domain.UserMembership), args.Error(1)
 }
 
+func (m *MockOrganizationRepository) ListMembers(ctx context.Context, orgID uuid.UUID) ([]domain.Member, error) {
+	args := m.Called(ctx, orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.Member), args.Error(1)
+}
+
+func (m *MockOrganizationRepository) RemoveMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
 // MockOIDCProvider is a mock implementation of port.OIDCProvider
 type MockOIDCProvider struct {
 	mock.Mock
