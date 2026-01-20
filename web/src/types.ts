@@ -32,6 +32,10 @@ export interface Ticket {
   completed_at: string | null;
 }
 
+export interface TicketDetail extends Ticket {
+  reporter_name: string;
+}
+
 export interface CreateTicketRequest {
   title: string;
   description: string;
