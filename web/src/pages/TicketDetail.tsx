@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTicket, updateTicket } from '../api/tickets';
+import TicketComments from '../components/TicketComments';
 import { ArrowLeft } from 'lucide-react';
 import type { Ticket } from '../types';
 
@@ -121,6 +122,9 @@ export default function TicketDetail() {
           </dl>
         </div>
       </div>
+
+      {/* Comments Section */}
+      <TicketComments ticketId={id!} />
     </div>
   );
 }
