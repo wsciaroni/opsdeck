@@ -1,4 +1,6 @@
 # Binaries
+server
+
 bin/
 dist/
 cmd/server/dist/
