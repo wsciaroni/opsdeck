@@ -56,25 +56,30 @@ OpsDeck is built as a **Stateless Modular Monolith**. It compiles into a single 
 
 ## 📦 Deployment
 
-### Mode A: Simple (Single Container)
+### Single Container (Docker)
 Ideal for small organizations. The frontend is embedded in the backend binary.
 
-1.  **Clone and Start:**
+1.  **Clone and Build:**
     ```bash
-    git clone [https://github.com/wsciaroni/opsdeck.git](https://github.com/wsciaroni/opsdeck.git)
+    git clone https://github.com/wsciaroni/opsdeck.git
     cd opsdeck
+    docker build -t opsdeck .
+    ```
+2.  **Run Dependencies:**
+    ```bash
     docker compose up -d
     ```
-2.  **Access:**
+3.  **Run Application:**
+    ```bash
+    docker run -p 8080:8080 --net host \
+      -e DATABASE_URL=postgres://user:password@localhost:5432/opsdeck?sslmode=disable \
+      opsdeck
+    ```
+    *Note: `--net host` is used here for simplicity to access the local DB. In production, use a proper Docker network.*
+
+4.  **Access:**
     * App: `http://localhost:8080`
     * Default Admin: `admin@example.com` / `password`
-
-### Mode B: Scaled (Kubernetes/Cloud)
-Designed to survive the "Chaos Monkey."
-
-* **Stateless:** The app container contains no state. Sessions are stored in Redis; Jobs are stored in Postgres.
-* **Horizontal Scaling:** Deploy 10+ replicas behind a Load Balancer.
-* **Configuration:** See `k8s/` directory for Helm charts.
 
 ---
 
@@ -89,7 +94,7 @@ Designed to survive the "Chaos Monkey."
 ### Quick Start
 1.  **Start Dependencies:**
     ```bash
-    docker compose -f docker-compose.dev.yml up -d db
+    docker compose up -d db redis
     ```
 2.  **Run Backend (Hot Reload):**
     ```bash
