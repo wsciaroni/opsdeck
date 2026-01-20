@@ -98,6 +98,11 @@ func main() {
 	ticketService := service.NewTicketService(ticketRepo)
 	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, repo, logger)
 
+	// Init Comment
+	commentRepo := postgres.NewCommentRepository(pool)
+	commentService := service.NewCommentService(commentRepo)
+	commentHandler := handler.NewCommentHandler(commentService, ticketService, repo, orgRepo, logger)
+
 	// Init Org
 	orgHandler := handler.NewOrgHandler(orgRepo, logger)
 
@@ -105,7 +110,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger)
 
 	// Setup Router
-	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, authMiddleware)
+	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, authMiddleware)
 
 	// Start Server
 	srv := &http.Server{

@@ -12,7 +12,7 @@ import (
 
 type contextKey string
 
-const userContextKey contextKey = "user"
+const UserContextKey contextKey = "user"
 
 type AuthMiddleware struct {
 	userRepo port.UserRepository
@@ -54,14 +54,14 @@ func (m *AuthMiddleware) Protect(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userContextKey, user)
+		ctx := context.WithValue(r.Context(), UserContextKey, user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // GetUser retrieves the user from the context.
 func GetUser(ctx context.Context) *domain.User {
-	user, ok := ctx.Value(userContextKey).(*domain.User)
+	user, ok := ctx.Value(UserContextKey).(*domain.User)
 	if !ok {
 		return nil
 	}
