@@ -96,7 +96,7 @@ func main() {
 	// Init Ticket
 	ticketRepo := postgres.NewTicketRepository(pool)
 	ticketService := service.NewTicketService(ticketRepo)
-	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, logger)
+	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, repo, logger)
 
 	// Init Middleware
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger)

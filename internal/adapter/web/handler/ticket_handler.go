@@ -8,13 +8,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
+	"github.com/wsciaroni/opsdeck/internal/core/domain"
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
 
 type TicketHandler struct {
-	service port.TicketService
-	orgRepo port.OrganizationRepository
-	logger  *slog.Logger
+	service  port.TicketService
+	orgRepo  port.OrganizationRepository
+	userRepo port.UserRepository
+	logger   *slog.Logger
+}
+
+type TicketDetailResponse struct {
+	*domain.Ticket
+	ReporterName string `json:"reporter_name"`
 }
 
 type CreateTicketRequest struct {
@@ -34,11 +41,78 @@ type UpdateTicketRequest struct {
 	Location    *string    `json:"location"`
 }
 
-func NewTicketHandler(service port.TicketService, orgRepo port.OrganizationRepository, logger *slog.Logger) *TicketHandler {
+func NewTicketHandler(service port.TicketService, orgRepo port.OrganizationRepository, userRepo port.UserRepository, logger *slog.Logger) *TicketHandler {
 	return &TicketHandler{
-		service: service,
-		orgRepo: orgRepo,
-		logger:  logger,
+		service:  service,
+		orgRepo:  orgRepo,
+		userRepo: userRepo,
+		logger:   logger,
+	}
+}
+
+func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "ticketID")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ticket ID", http.StatusBadRequest)
+		return
+	}
+
+	ticket, err := h.service.GetTicket(r.Context(), id)
+	if err != nil {
+		h.logger.Error("failed to get ticket", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if ticket == nil {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return
+	}
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	if err != nil {
+		h.logger.Error("failed to list user memberships", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	isMember := false
+	for _, m := range memberships {
+		if m.ID == ticket.OrganizationID {
+			isMember = true
+			break
+		}
+	}
+
+	if !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	reporterName := ""
+	reporter, err := h.userRepo.GetByID(r.Context(), ticket.ReporterID)
+	if err != nil {
+		h.logger.Error("failed to get reporter", "error", err)
+		// continue without reporter name
+	} else if reporter != nil {
+		reporterName = reporter.Name
+	}
+
+	resp := TicketDetailResponse{
+		Ticket:       ticket,
+		ReporterName: reporterName,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
 	}
 }
 
