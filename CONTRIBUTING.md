@@ -25,7 +25,7 @@ This project and everyone participating in it is governed by the [Contributor Co
     ```
 3.  **Start Infrastructure** (Postgres & Redis):
     ```bash
-    docker compose -f docker-compose.dev.yml up -d
+    docker compose up -d
     ```
 4.  **Run Backend**:
     ```bash
