@@ -39,6 +39,7 @@ func NewRouter(
 			r.Get("/me", authHandler.Me)
 			r.Post("/tickets", ticketHandler.CreateTicket)
 			r.Get("/tickets", ticketHandler.ListTickets)
+			r.Get("/tickets/{ticketID}", ticketHandler.GetTicket)
 			r.Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
 		})
 	})
