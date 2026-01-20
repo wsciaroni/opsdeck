@@ -1,5 +1,4 @@
 import { client } from './client';
-import type { Ticket } from '../types';
 
 export interface Comment {
   id: string;
