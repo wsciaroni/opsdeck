@@ -16,6 +16,7 @@ func NewRouter(
 	staticFS fs.FS,
 	authHandler *handler.AuthHandler,
 	ticketHandler *handler.TicketHandler,
+	orgHandler *handler.OrgHandler,
 	authMW *authMiddleware.AuthMiddleware,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -41,6 +42,7 @@ func NewRouter(
 			r.Get("/tickets", ticketHandler.ListTickets)
 			r.Get("/tickets/{ticketID}", ticketHandler.GetTicket)
 			r.Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
+			r.Post("/organizations", orgHandler.CreateOrganization)
 		})
 	})
 

@@ -10,6 +10,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: () => void;
   logout: () => Promise<void>;
+  switchOrganization: (orgID: string) => void;
+  refreshOrganizations: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,29 +22,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentOrg, setCurrentOrg] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchMe() {
-      try {
-        const response = await client.get('/me');
-        const data = response.data;
-        setUser(data.user);
-        setOrganizations(data.organizations || []);
-        if (data.organizations && data.organizations.length > 0) {
-          setCurrentOrg(data.organizations[0]);
-        }
-      } catch (error) {
-        // If 401, we are just not logged in.
-        // For other errors, we might want to log them or show a message,
-        // but for now we'll just assume not logged in / user is null.
-        console.error("Failed to fetch user", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const fetchMe = async () => {
+    try {
+      const response = await client.get('/me');
+      const data = response.data;
+      setUser(data.user);
+      const orgs = data.organizations || [];
+      setOrganizations(orgs);
 
-    fetchMe();
+      // Determine which org to select
+      if (orgs.length > 0) {
+        const lastOrgID = localStorage.getItem('last_org_id');
+        if (lastOrgID) {
+          const found = orgs.find((o: Organization) => o.id === lastOrgID);
+          if (found) {
+            setCurrentOrg(found);
+            return;
+          }
+        }
+        // Default to first if no valid stored org or not found
+        // Only change currentOrg if it's currently null or not in the new list (which implies a refresh)
+        // Actually, if we are refreshing, we might want to keep the current one if it still exists.
+        // But for initial load (when currentOrg is null), this works.
+        // If we call refreshOrganizations(), we should try to keep the current one.
+        setCurrentOrg((prev) => {
+           if (prev && orgs.find((o: Organization) => o.id === prev.id)) {
+             return prev;
+           }
+           return orgs[0];
+        });
+      } else {
+        setCurrentOrg(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user", error);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchMe().finally(() => setIsLoading(false));
   }, []);
+
+  const switchOrganization = (orgID: string) => {
+    const org = organizations.find((o) => o.id === orgID);
+    if (org) {
+      setCurrentOrg(org);
+      localStorage.setItem('last_org_id', orgID);
+    }
+  };
+
+  const refreshOrganizations = async () => {
+    await fetchMe();
+  };
 
   const login = () => {
     window.location.href = '/auth/login';
@@ -66,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, organizations, currentOrg, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, organizations, currentOrg, isLoading, login, logout, switchOrganization, refreshOrganizations }}>
       {children}
     </AuthContext.Provider>
   );

@@ -98,11 +98,14 @@ func main() {
 	ticketService := service.NewTicketService(ticketRepo)
 	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, repo, logger)
 
+	// Init Org
+	orgHandler := handler.NewOrgHandler(orgRepo, logger)
+
 	// Init Middleware
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger)
 
 	// Setup Router
-	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, authMiddleware)
+	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, authMiddleware)
 
 	// Start Server
 	srv := &http.Server{

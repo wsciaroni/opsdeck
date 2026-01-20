@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut } from 'lucide-react';
+import OrgSwitcher from './OrgSwitcher';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="flex items-center">
               {user && (
                 <>
+                  <OrgSwitcher />
                   <span className="text-gray-700 text-sm mr-4 hidden sm:block">
                     {user.email}
                   </span>
