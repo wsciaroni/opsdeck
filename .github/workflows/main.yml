@@ -93,9 +93,8 @@ jobs:
       - name: Type Check (TSC)
         run: npm run typecheck
 
-      # Optional: Run Unit Tests if you have them (Vitest/Jest)
-      # - name: Run Tests
-      #   run: npm run test
+      - name: Run Tests
+        run: npm run test -- --run
 
   # ------------------------------------------------------------------
   # JOB 3: Build & Publish Docker Image
