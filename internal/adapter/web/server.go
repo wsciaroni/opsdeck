@@ -49,6 +49,9 @@ func NewRouter(
 			r.Get("/tickets/{ticketID}/comments", commentHandler.List)
 
 			r.Post("/organizations", orgHandler.CreateOrganization)
+			r.Post("/organizations/{id}/members", orgHandler.AddMember)
+			r.Get("/organizations/{id}/members", orgHandler.ListMembers)
+			r.Delete("/organizations/{id}/members/{userID}", orgHandler.RemoveMember)
 		})
 	})
 

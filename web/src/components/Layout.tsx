@@ -1,10 +1,11 @@
 import { type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import OrgSwitcher from './OrgSwitcher';
+import { Link } from 'react-router-dom';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, currentOrg } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -20,6 +21,15 @@ export default function Layout({ children }: { children: ReactNode }) {
               {user && (
                 <>
                   <OrgSwitcher />
+                  {currentOrg && (
+                     <Link
+                      to={`/organizations/${currentOrg.id}/settings/team`}
+                      className="text-gray-400 hover:text-gray-500 mr-4"
+                      title="Team Settings"
+                     >
+                      <Settings className="h-5 w-5" />
+                     </Link>
+                  )}
                   <span className="text-gray-700 text-sm mr-4 hidden sm:block">
                     {user.email}
                   </span>

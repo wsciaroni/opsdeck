@@ -28,3 +28,12 @@ type UserMembership struct {
 	Organization
 	Role string `json:"role"`
 }
+
+// Member represents a user in an organization with their role.
+type Member struct {
+	UserID    uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	AvatarURL string    `json:"avatar_url"`
+	Role      string    `json:"role"`
+}

@@ -104,7 +104,7 @@ func main() {
 	commentHandler := handler.NewCommentHandler(commentService, ticketService, repo, orgRepo, logger)
 
 	// Init Org
-	orgHandler := handler.NewOrgHandler(orgRepo, logger)
+	orgHandler := handler.NewOrgHandler(orgRepo, repo, logger)
 
 	// Init Middleware
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger)
