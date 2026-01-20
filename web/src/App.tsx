@@ -1,6 +1,7 @@
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from './pages/Dashboard';
+import Layout from './components/Layout';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -28,7 +29,11 @@ function Home() {
     );
   }
 
-  return <Dashboard />;
+  return (
+    <Layout>
+      <Dashboard />
+    </Layout>
+  );
 }
 
 function App() {

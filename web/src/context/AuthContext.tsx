@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { client } from '../api/client';
+import { logout as apiLogout } from '../api/auth';
 import type { User, Organization } from '../types';
 
 interface AuthContextType {
@@ -8,7 +9,7 @@ interface AuthContextType {
   currentOrg: Organization | null;
   isLoading: boolean;
   login: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,18 +48,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/auth/login';
   };
 
-  const logout = () => {
-    // In a real app, we might call an API endpoint to clear the cookie.
-    // For now, we'll just clear state and maybe redirect.
-    // Assuming there is a backend logout endpoint would be better, but the task didn't specify one.
-    // However, simply redirecting to home or clearing state is what we can do.
-    // Since session is cookie based, we really should have a logout endpoint.
-    // But per task requirements: "login() function: window.location.href = '/auth/login'."
-    // Logout wasn't strictly detailed but "logout" was listed in context.
-    setUser(null);
-    setOrganizations([]);
-    setCurrentOrg(null);
-    // Optionally: window.location.href = '/auth/logout'; // if it existed
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      console.error('Logout failed', error);
+    } finally {
+      setUser(null);
+      setOrganizations([]);
+      setCurrentOrg(null);
+      // We don't need to force reload, the state change will show the login screen.
+      // But if we want to be sure all cookies are cleared in the browser view:
+      // window.location.href = '/';
+      // However, since we are SPA, state clearing is enough for UI.
+      // If the backend cookie is gone, next refresh will also show login screen.
+    }
   };
 
   return (
