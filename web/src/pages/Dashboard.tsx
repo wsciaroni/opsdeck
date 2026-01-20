@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTickets, createTicket } from '../api/tickets';
 import type { Ticket } from '../types';
 import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -43,6 +44,7 @@ function PriorityLabel({ priority }: { priority: string }) {
 export default function Dashboard() {
   const { currentOrg } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
     title: '',
@@ -126,7 +128,11 @@ export default function Dashboard() {
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {tickets?.map((ticket: Ticket) => (
-                        <tr key={ticket.id}>
+                        <tr
+                            key={ticket.id}
+                            onClick={() => navigate('/tickets/' + ticket.id)}
+                            className="cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                        >
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                             <StatusBadge status={ticket.status_id} />
                           </td>
