@@ -17,15 +17,51 @@ func NewOrganizationRepository(db *pgxpool.Pool) *OrganizationRepository {
 	return &OrganizationRepository{db: db}
 }
 
+func (r *OrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Organization, error) {
+	query := `
+		SELECT id, name, slug, share_link_enabled, share_link_token, created_at, updated_at
+		FROM organizations
+		WHERE id = $1
+	`
+	var org domain.Organization
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&org.ID,
+		&org.Name,
+		&org.Slug,
+		&org.ShareLinkEnabled,
+		&org.ShareLinkToken,
+		&org.CreatedAt,
+		&org.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization: %w", err)
+	}
+	return &org, nil
+}
+
 func (r *OrganizationRepository) Create(ctx context.Context, org *domain.Organization) error {
 	query := `
-		INSERT INTO organizations (name, slug)
-		VALUES ($1, $2)
+		INSERT INTO organizations (name, slug, share_link_enabled, share_link_token)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 	`
-	err := r.db.QueryRow(ctx, query, org.Name, org.Slug).Scan(&org.ID, &org.CreatedAt, &org.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken).Scan(&org.ID, &org.CreatedAt, &org.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create organization: %w", err)
+	}
+	return nil
+}
+
+func (r *OrganizationRepository) Update(ctx context.Context, org *domain.Organization) error {
+	query := `
+		UPDATE organizations
+		SET name = $1, slug = $2, share_link_enabled = $3, share_link_token = $4, updated_at = NOW()
+		WHERE id = $5
+		RETURNING updated_at
+	`
+	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken, org.ID).Scan(&org.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update organization: %w", err)
 	}
 	return nil
 }
@@ -44,7 +80,7 @@ func (r *OrganizationRepository) AddMember(ctx context.Context, orgID uuid.UUID,
 
 func (r *OrganizationRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error) {
 	query := `
-		SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, om.role
+		SELECT o.id, o.name, o.slug, o.share_link_enabled, o.share_link_token, o.created_at, o.updated_at, om.role
 		FROM organizations o
 		JOIN organization_members om ON o.id = om.organization_id
 		WHERE om.user_id = $1
@@ -62,6 +98,8 @@ func (r *OrganizationRepository) ListByUser(ctx context.Context, userID uuid.UUI
 			&m.Organization.ID,
 			&m.Organization.Name,
 			&m.Organization.Slug,
+			&m.Organization.ShareLinkEnabled,
+			&m.Organization.ShareLinkToken,
 			&m.Organization.CreatedAt,
 			&m.Organization.UpdatedAt,
 			&m.Role,

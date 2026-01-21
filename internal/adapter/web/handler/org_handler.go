@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -303,4 +304,191 @@ func generateSlug(name string) string {
 		return slug + "-temp"
 	}
 	return slug + "-" + hex.EncodeToString(bytes)
+}
+
+func (h *OrgHandler) GetShareSettings(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !h.isMember(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		ShareLinkEnabled bool    `json:"share_link_enabled"`
+		ShareLinkToken   *string `json:"share_link_token"`
+	}{
+		ShareLinkEnabled: org.ShareLinkEnabled,
+		ShareLinkToken:   org.ShareLinkToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+type UpdateShareSettingsRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (h *OrgHandler) UpdateShareSettings(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateShareSettingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Only owner/admin can update settings
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	org.ShareLinkEnabled = req.Enabled
+	if req.Enabled && org.ShareLinkToken == nil {
+		token := generateToken()
+		org.ShareLinkToken = &token
+	}
+
+	if err := h.orgRepo.Update(r.Context(), org); err != nil {
+		h.logger.Error("failed to update organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		ShareLinkEnabled bool    `json:"share_link_enabled"`
+		ShareLinkToken   *string `json:"share_link_token"`
+	}{
+		ShareLinkEnabled: org.ShareLinkEnabled,
+		ShareLinkToken:   org.ShareLinkToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+func (h *OrgHandler) RegenerateShareToken(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Only owner/admin can update settings
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	token := generateToken()
+	org.ShareLinkToken = &token
+
+	if err := h.orgRepo.Update(r.Context(), org); err != nil {
+		h.logger.Error("failed to update organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		ShareLinkEnabled bool    `json:"share_link_enabled"`
+		ShareLinkToken   *string `json:"share_link_token"`
+	}{
+		ShareLinkEnabled: org.ShareLinkEnabled,
+		ShareLinkToken:   org.ShareLinkToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+func (h *OrgHandler) isMember(ctx context.Context, orgID, userID uuid.UUID) bool {
+	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	if err != nil {
+		return false
+	}
+	for _, m := range memberships {
+		if m.Organization.ID == orgID {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *OrgHandler) isAdminOrOwner(ctx context.Context, orgID, userID uuid.UUID) bool {
+	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	if err != nil {
+		return false
+	}
+	for _, m := range memberships {
+		if m.Organization.ID == orgID && (m.Role == "owner" || m.Role == "admin") {
+			return true
+		}
+	}
+	return false
+}
+
+func generateToken() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(b)
 }

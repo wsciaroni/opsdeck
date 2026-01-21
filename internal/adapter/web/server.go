@@ -56,6 +56,10 @@ func NewRouter(
 			r.Post("/organizations/{id}/members", orgHandler.AddMember)
 			r.Get("/organizations/{id}/members", orgHandler.ListMembers)
 			r.Delete("/organizations/{id}/members/{userID}", orgHandler.RemoveMember)
+
+			r.Get("/organizations/{id}/share", orgHandler.GetShareSettings)
+			r.Put("/organizations/{id}/share", orgHandler.UpdateShareSettings)
+			r.Post("/organizations/{id}/share/regenerate", orgHandler.RegenerateShareToken)
 		})
 	})
 
