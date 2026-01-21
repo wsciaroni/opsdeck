@@ -1,15 +1,13 @@
 import { type ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Settings } from 'lucide-react';
-import OrgSwitcher from './OrgSwitcher';
-import { Link } from 'react-router-dom';
+import ProfileDropdown from './ProfileDropdown';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, logout, currentOrg } = useAuth();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="bg-white border-b border-gray-200 relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
@@ -19,29 +17,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center">
               {user && (
-                <>
-                  <OrgSwitcher />
-                  {currentOrg && (
-                     <Link
-                      to={`/organizations/${currentOrg.id}/settings/team`}
-                      className="text-gray-400 hover:text-gray-500 mr-4"
-                      title="Team Settings"
-                     >
-                      <Settings className="h-5 w-5" />
-                     </Link>
-                  )}
-                  <span className="text-gray-700 text-sm mr-4 hidden sm:block">
-                    {user.email}
-                  </span>
-                  <button
-                    onClick={logout}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-red-600 focus:outline-none transition ease-in-out duration-150"
-                    title="Logout"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span className="ml-2 hidden sm:inline">Logout</span>
-                  </button>
-                </>
+                <ProfileDropdown />
               )}
             </div>
           </div>

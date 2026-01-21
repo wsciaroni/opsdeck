@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import TicketDetail from './pages/TicketDetail';
 import TeamSettings from './pages/TeamSettings';
+import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import { type ReactNode } from 'react';
@@ -37,6 +38,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/organizations/:orgId/settings/team" element={<TeamSettings />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
       </AuthProvider>
