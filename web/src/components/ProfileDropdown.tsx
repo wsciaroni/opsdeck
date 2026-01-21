@@ -2,11 +2,12 @@ import { useState, Fragment } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createOrganization } from '../api/organizations';
 import { Menu, Transition, Dialog } from '@headlessui/react';
-import { ChevronDown, Check, Plus } from 'lucide-react';
+import { User, LogOut, Check, Plus, Building } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 
-export default function OrgSwitcher() {
-  const { currentOrg, organizations, switchOrganization, refreshOrganizations } = useAuth();
+export default function ProfileDropdown() {
+  const { user, currentOrg, organizations, switchOrganization, refreshOrganizations, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -30,70 +31,123 @@ export default function OrgSwitcher() {
     }
   };
 
-  if (!currentOrg) return null;
+  if (!user) return null;
 
   return (
     <>
-      <Menu as="div" className="relative inline-block text-left mr-4">
+      <Menu as="div" className="relative ml-3">
         <div>
-          <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
-            {currentOrg.name}
-            <ChevronDown className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
+          <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            <span className="sr-only">Open user menu</span>
+            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+               <User className="h-5 w-5" />
+            </div>
           </Menu.Button>
         </div>
 
-        <Transition
-          as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
+        <Menu.Items
+          anchor="bottom end"
+          className="z-50 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transition duration-200 ease-out data-[closed]:scale-95 data-[closed]:opacity-0"
         >
-          <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none divide-y divide-gray-100">
-            <div className="py-1">
-              {organizations.map((org) => (
-                <Menu.Item key={org.id}>
-                  {({ active }) => (
-                    <button
-                      onClick={() => switchOrganization(org.id)}
-                      className={clsx(
-                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                        'group flex items-center w-full px-4 py-2 text-sm'
-                      )}
-                    >
-                      <span className="flex-1 text-left">{org.name}</span>
-                      {currentOrg.id === org.id && (
-                        <Check className="h-4 w-4 text-indigo-600" />
-                      )}
-                    </button>
+          <div className="px-4 py-2 border-b border-gray-100">
+            <p className="text-sm text-gray-900 truncate font-medium">{user.email}</p>
+          </div>
+
+          <div className="py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <Link
+                  to="/profile"
+                  className={clsx(
+                    active ? 'bg-gray-100' : '',
+                    'flex px-4 py-2 text-sm text-gray-700 items-center'
                   )}
-                </Menu.Item>
-              ))}
-            </div>
-            <div className="py-1">
+                >
+                  <User className="mr-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                  Profile Settings
+                </Link>
+              )}
+            </Menu.Item>
+            {currentOrg && (
               <Menu.Item>
                 {({ active }) => (
-                  <button
-                    onClick={() => setIsOpen(true)}
+                  <Link
+                    to={`/organizations/${currentOrg.id}/settings/team`}
                     className={clsx(
-                      active ? 'bg-gray-100 text-indigo-700' : 'text-indigo-600',
-                      'group flex items-center w-full px-4 py-2 text-sm font-medium'
+                      active ? 'bg-gray-100' : '',
+                      'flex px-4 py-2 text-sm text-gray-700 items-center'
                     )}
                   >
-                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Create New Organization
+                    <Building className="mr-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                    Organization Settings
+                  </Link>
+                )}
+              </Menu.Item>
+            )}
+          </div>
+
+          <div className="border-t border-gray-100 py-1">
+             <div className="px-4 py-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Switch Organization
+                </p>
+             </div>
+             {organizations.map((org) => (
+              <Menu.Item key={org.id}>
+                {({ active }) => (
+                  <button
+                    onClick={() => switchOrganization(org.id)}
+                    className={clsx(
+                      active ? 'bg-gray-100' : '',
+                      'group flex w-full items-center px-4 py-2 text-sm text-gray-700'
+                    )}
+                  >
+                    <span className="flex-1 text-left truncate">{org.name}</span>
+                    {currentOrg?.id === org.id && (
+                      <Check className="ml-2 h-4 w-4 text-indigo-600" />
+                    )}
                   </button>
                 )}
               </Menu.Item>
-            </div>
-          </Menu.Items>
-        </Transition>
+            ))}
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => setIsOpen(true)}
+                  className={clsx(
+                    active ? 'bg-gray-100' : '',
+                    'group flex w-full items-center px-4 py-2 text-sm text-indigo-600 font-medium'
+                  )}
+                >
+                  <Plus className="mr-3 h-4 w-4" aria-hidden="true" />
+                  Create New Organization
+                </button>
+              )}
+            </Menu.Item>
+          </div>
+
+          <div className="border-t border-gray-100 py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={logout}
+                  className={clsx(
+                    active ? 'bg-gray-100' : '',
+                    'flex w-full px-4 py-2 text-sm text-gray-700 items-center'
+                  )}
+                >
+                  <LogOut className="mr-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                  Logout
+                </button>
+              )}
+            </Menu.Item>
+          </div>
+        </Menu.Items>
       </Menu>
 
       <Transition appear show={isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => setIsOpen(false)}>
+          {/* Dialog content preserved */}
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
