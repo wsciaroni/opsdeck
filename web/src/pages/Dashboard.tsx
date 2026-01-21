@@ -43,27 +43,29 @@ function PriorityLabel({ priority }: { priority: string }) {
   return <span className={`text-sm ${colors[priority] || 'text-gray-500'}`}>{priority}</span>;
 }
 
-function MobileTicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }) {
+function MobileTicketCard({ ticket, onClick }: { readonly ticket: Ticket; readonly onClick: () => void }) {
   return (
-    <li
-      onClick={onClick}
-      className="block bg-white px-4 py-4 hover:bg-gray-50 cursor-pointer"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-2">
-          <StatusBadge status={ticket.status_id} />
-          <PriorityLabel priority={ticket.priority_id} />
+    <li className="block bg-white hover:bg-gray-50 cursor-pointer">
+      <button
+        onClick={onClick}
+        className="w-full text-left px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <StatusBadge status={ticket.status_id} />
+            <PriorityLabel priority={ticket.priority_id} />
+          </div>
+          <div className="text-xs text-gray-500">
+            {new Date(ticket.created_at).toLocaleDateString()}
+          </div>
         </div>
-        <div className="text-xs text-gray-500">
-          {new Date(ticket.created_at).toLocaleDateString()}
+        <div className="mb-2">
+          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
         </div>
-      </div>
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
-      </div>
-      <div className="flex items-center text-xs text-gray-500">
-        <span>{ticket.assignee_user_id || 'Unassigned'}</span>
-      </div>
+        <div className="flex items-center text-xs text-gray-500">
+          <span>{ticket.assignee_user_id || 'Unassigned'}</span>
+        </div>
+      </button>
     </li>
   );
 }
