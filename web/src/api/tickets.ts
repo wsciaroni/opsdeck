@@ -20,3 +20,8 @@ export async function updateTicket(id: string, data: { status_id?: string; prior
   const response = await client.patch(`/tickets/${id}`, data);
   return response.data;
 }
+
+export async function createPublicTicket(data: { token: string; title: string; description: string; name: string; email: string; priority_id: string }): Promise<Ticket> {
+  const response = await client.post('/public/tickets', data);
+  return response.data;
+}
