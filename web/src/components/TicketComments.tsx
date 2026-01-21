@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getComments, createComment } from '../api/comments';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 
 interface TicketCommentsProps {
   ticketId: string;
@@ -23,6 +24,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
     onSuccess: () => {
       setBody('');
       queryClient.invalidateQueries({ queryKey: ['comments', ticketId] });
+      toast.success("Comment posted!");
     },
   });
 

@@ -4,6 +4,7 @@ import { getTicket, updateTicket } from '../api/tickets';
 import TicketComments from '../components/TicketComments';
 import { ArrowLeft } from 'lucide-react';
 import type { Ticket } from '../types';
+import toast from 'react-hot-toast';
 
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ export default function TicketDetail() {
       }));
        // Also invalidate the list to update the dashboard
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      toast.success("Ticket updated!");
     },
   });
 
