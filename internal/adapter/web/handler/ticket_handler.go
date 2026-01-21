@@ -37,8 +37,8 @@ type CreateTicketRequest struct {
 type UpdateTicketRequest struct {
 	Title       *string    `json:"title"`
 	Description *string    `json:"description"`
-	Priority    *string    `json:"priority"`
-	Status      *string    `json:"status"`
+	Priority    *string    `json:"priority_id"`
+	Status      *string    `json:"status_id"`
 	AssigneeID  *uuid.UUID `json:"assignee_id"`
 	Location    *string    `json:"location"`
 }
