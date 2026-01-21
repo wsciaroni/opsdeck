@@ -56,6 +56,14 @@ func (m *MockOrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) 
 	return args.Get(0).(*domain.Organization), args.Error(1)
 }
 
+func (m *MockOrganizationRepository) GetByShareToken(ctx context.Context, token string) (*domain.Organization, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Organization), args.Error(1)
+}
+
 func (m *MockOrganizationRepository) Create(ctx context.Context, org *domain.Organization) error {
 	args := m.Called(ctx, org)
 	return args.Error(0)
