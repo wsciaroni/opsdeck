@@ -43,6 +43,31 @@ function PriorityLabel({ priority }: { priority: string }) {
   return <span className={`text-sm ${colors[priority] || 'text-gray-500'}`}>{priority}</span>;
 }
 
+function MobileTicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }) {
+  return (
+    <li
+      onClick={onClick}
+      className="block bg-white px-4 py-4 hover:bg-gray-50 cursor-pointer"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center space-x-2">
+          <StatusBadge status={ticket.status_id} />
+          <PriorityLabel priority={ticket.priority_id} />
+        </div>
+        <div className="text-xs text-gray-500">
+          {new Date(ticket.created_at).toLocaleDateString()}
+        </div>
+      </div>
+      <div className="mb-2">
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
+      </div>
+      <div className="flex items-center text-xs text-gray-500">
+        <span>{ticket.assignee_user_id || 'Unassigned'}</span>
+      </div>
+    </li>
+  );
+}
+
 export default function Dashboard() {
   const { currentOrg } = useAuth();
   const queryClient = useQueryClient();
@@ -108,71 +133,91 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col">
-        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
-                {isLoading ? (
-                    <div className="p-8 text-center text-gray-500">Loading tickets...</div>
-                ) : error ? (
-                    <div className="p-8 text-center text-red-500">Error loading tickets</div>
-                ) : tickets && tickets.length === 0 ? (
-                    <EmptyState
-                      title="No tickets found"
-                      description="Create your first ticket to get started tracking your work."
-                      icon={Inbox}
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => setIsModalOpen(true)}
-                          className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          New Ticket
-                        </button>
-                      }
-                    />
-                ) : (
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Title</th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Priority</th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assignee</th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {tickets?.map((ticket: Ticket) => (
-                        <tr
-                          key={ticket.id}
-                          onClick={() => navigate(`/tickets/${ticket.id}`)}
-                          className="cursor-pointer hover:bg-gray-50"
-                        >
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <StatusBadge status={ticket.status_id} />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900">
-                            {ticket.title}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            <PriorityLabel priority={ticket.priority_id} />
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {ticket.assignee_user_id || 'Unassigned'}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                            {new Date(ticket.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-            </div>
+      <div className="mt-8">
+        {isLoading ? (
+          <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">Loading tickets...</div>
+        ) : error ? (
+          <div className="bg-white shadow rounded-lg p-8 text-center text-red-500">Error loading tickets</div>
+        ) : tickets && tickets.length === 0 ? (
+          <div className="bg-white shadow rounded-lg">
+            <EmptyState
+              title="No tickets found"
+              description="Create your first ticket to get started tracking your work."
+              icon={Inbox}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Ticket
+                </button>
+              }
+            />
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Mobile View */}
+            <div className="md:hidden bg-white shadow overflow-hidden rounded-md border border-gray-200">
+              <ul className="divide-y divide-gray-200">
+                {tickets?.map((ticket: Ticket) => (
+                  <MobileTicketCard
+                    key={ticket.id}
+                    ticket={ticket}
+                    onClick={() => navigate(`/tickets/${ticket.id}`)}
+                  />
+                ))}
+              </ul>
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:flex flex-col">
+              <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
+                    <table className="min-w-full divide-y divide-gray-300">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Title</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Priority</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assignee</th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {tickets?.map((ticket: Ticket) => (
+                          <tr
+                            key={ticket.id}
+                            onClick={() => navigate(`/tickets/${ticket.id}`)}
+                            className="cursor-pointer hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <StatusBadge status={ticket.status_id} />
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900">
+                              {ticket.title}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <PriorityLabel priority={ticket.priority_id} />
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {ticket.assignee_user_id || 'Unassigned'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {new Date(ticket.created_at).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal */}
