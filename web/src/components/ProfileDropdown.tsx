@@ -2,7 +2,7 @@ import { useState, Fragment } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createOrganization } from '../api/organizations';
 import { Menu, Transition, Dialog } from '@headlessui/react';
-import { User, LogOut, Check, Plus, Building } from 'lucide-react';
+import { User as UserIcon, LogOut, Check, Plus, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 
@@ -39,9 +39,17 @@ export default function ProfileDropdown() {
         <div>
           <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             <span className="sr-only">Open user menu</span>
-            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-               <User className="h-5 w-5" />
-            </div>
+            {user.avatar_url ? (
+              <img
+                className="h-8 w-8 rounded-full"
+                src={user.avatar_url}
+                alt=""
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <UserIcon className="h-5 w-5" />
+              </div>
+            )}
           </Menu.Button>
         </div>
 
@@ -63,7 +71,7 @@ export default function ProfileDropdown() {
                     'flex px-4 py-2 text-sm text-gray-700 items-center'
                   )}
                 >
-                  <User className="mr-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                  <UserIcon className="mr-3 h-4 w-4 text-gray-400" aria-hidden="true" />
                   Profile Settings
                 </Link>
               )}
