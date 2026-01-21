@@ -20,12 +20,21 @@ func TestOrganizationRepository(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Assuming migrations are already applied or we rely on pre-existing schema for integration test env.
-	// In user_repo_test, it reads migration file manually. Let's try to do minimal setup or rely on running instance?
-	// The user_repo_test runs migration 001. We probably need more migrations for orgs.
-	// Since I cannot know the full migration state easily, I'll assume the environment running tests has the DB ready or I will try to apply migrations if possible.
-	// However, `user_repo_test.go` pattern suggests applying specific migrations.
-	// I'll skip migration setup here to avoid complexity and assume it's an integration test environment where I might need to truncate.
+	// Apply Migrations
+	migrationFiles := []string{
+		"../../../../migrations/001_users.sql",
+		"../../../../migrations/002_add_organizations.sql",
+	}
+
+	for _, file := range migrationFiles {
+		sql, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("Failed to read migration file %s: %v", file, err)
+		}
+		if _, err := pool.Exec(ctx, string(sql)); err != nil {
+			t.Fatalf("Failed to apply migration %s: %v", file, err)
+		}
+	}
 
 	// Cleanup function
 	cleanup := func() {
