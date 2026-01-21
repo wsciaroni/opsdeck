@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTickets, createTicket } from '../api/tickets';
 import type { Ticket } from '../types';
-import { Plus } from 'lucide-react';
+import { Plus, Inbox } from 'lucide-react';
+import EmptyState from '../components/EmptyState';
+import toast from 'react-hot-toast';
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -64,6 +66,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setIsModalOpen(false);
       setNewTicket({ title: '', description: '', priority_id: 'medium' });
+      toast.success("Ticket created!");
     },
   });
 
@@ -108,13 +111,27 @@ export default function Dashboard() {
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
                 {isLoading ? (
                     <div className="p-8 text-center text-gray-500">Loading tickets...</div>
                 ) : error ? (
                     <div className="p-8 text-center text-red-500">Error loading tickets</div>
                 ) : tickets && tickets.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">No tickets yet.</div>
+                    <EmptyState
+                      title="No tickets found"
+                      description="Create your first ticket to get started tracking your work."
+                      icon={Inbox}
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => setIsModalOpen(true)}
+                          className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Ticket
+                        </button>
+                      }
+                    />
                 ) : (
                   <table className="min-w-full divide-y divide-gray-300">
                     <thead className="bg-gray-50">

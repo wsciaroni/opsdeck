@@ -7,6 +7,7 @@ import TeamSettings from './pages/TeamSettings';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import { type ReactNode } from 'react';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <Toaster position="bottom-right" reverseOrder={false} />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<RequireAuth><Layout><Outlet /></Layout></RequireAuth>}>

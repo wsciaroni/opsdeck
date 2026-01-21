@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getMembers, addMember, removeMember } from '../api/organizations';
-import { Trash2, UserPlus, AlertCircle } from 'lucide-react';
+import { Trash2, UserPlus, AlertCircle, Users } from 'lucide-react';
 import clsx from 'clsx';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import EmptyState from '../components/EmptyState';
 
 export default function TeamSettings() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -27,6 +29,7 @@ export default function TeamSettings() {
       queryClient.invalidateQueries({ queryKey: ['members', orgId] });
       setNewMemberEmail('');
       setError('');
+      toast.success("Member added!");
     },
     onError: (err: unknown) => {
       if (axios.isAxiosError(err) && err.response) {
@@ -151,12 +154,14 @@ export default function TeamSettings() {
                 </div>
               </li>
             ))}
-            {members?.length === 0 && (
-              <li className="px-4 py-8 text-center text-gray-500">
-                No members found.
-              </li>
-            )}
           </ul>
+          {members?.length === 0 && (
+            <EmptyState
+                title="No team members"
+                description="Invite your team members to collaborate on tickets."
+                icon={Users}
+            />
+          )}
         </div>
       </div>
     </div>
