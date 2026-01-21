@@ -16,13 +16,15 @@ type AuthHandler struct {
 	service port.AuthService
 	orgRepo port.OrganizationRepository
 	logger  *slog.Logger
+	secret  []byte
 }
 
-func NewAuthHandler(service port.AuthService, orgRepo port.OrganizationRepository, logger *slog.Logger) *AuthHandler {
+func NewAuthHandler(service port.AuthService, orgRepo port.OrganizationRepository, logger *slog.Logger, secret string) *AuthHandler {
 	return &AuthHandler{
 		service: service,
 		orgRepo: orgRepo,
 		logger:  logger,
+		secret:  []byte(secret),
 	}
 }
 
@@ -59,9 +61,11 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		secure = false
 	}
 
+	signedSessionID := middleware.SignSessionID(sessionID, h.secret)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
-		Value:    sessionID,
+		Value:    signedSessionID,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
