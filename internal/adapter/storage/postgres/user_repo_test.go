@@ -23,15 +23,9 @@ func TestUserRepository(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Run migration manually
-	// Read file
-	migrationSQL, err := os.ReadFile("../../../../migrations/001_users.sql")
-	if err != nil {
-		t.Fatalf("Failed to read migration file: %v", err)
-	}
-	_, err = pool.Exec(ctx, string(migrationSQL))
-	if err != nil {
-		t.Fatalf("Failed to run migration: %v", err)
+	// Run migrations
+	if err := RunMigrations(ctx, os.Getenv("DATABASE_URL")); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Cleanup

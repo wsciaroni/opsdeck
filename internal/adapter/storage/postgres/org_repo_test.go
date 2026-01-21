@@ -21,19 +21,8 @@ func TestOrganizationRepository(t *testing.T) {
 	defer pool.Close()
 
 	// Apply Migrations
-	migrationFiles := []string{
-		"../../../../migrations/001_users.sql",
-		"../../../../migrations/002_add_organizations.sql",
-	}
-
-	for _, file := range migrationFiles {
-		sql, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatalf("Failed to read migration file %s: %v", file, err)
-		}
-		if _, err := pool.Exec(ctx, string(sql)); err != nil {
-			t.Fatalf("Failed to apply migration %s: %v", file, err)
-		}
+	if err := RunMigrations(ctx, os.Getenv("DATABASE_URL")); err != nil {
+		t.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Cleanup function
