@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -116,6 +118,78 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *TicketHandler) ExportTickets(w http.ResponseWriter, r *http.Request) {
+	// 1. Verify Authentication & Admin Role
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if user.Role != domain.RoleAdmin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// 2. Parse Filters
+	var orgID *uuid.UUID
+	orgIDStr := r.URL.Query().Get("organization_id")
+	if orgIDStr != "" {
+		parsed, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			http.Error(w, "Invalid organization_id", http.StatusBadRequest)
+			return
+		}
+		orgID = &parsed
+	}
+
+	// 3. Fetch Tickets
+	filter := port.TicketFilter{
+		OrganizationID: orgID,
+	}
+
+	tickets, err := h.service.ListTickets(r.Context(), filter)
+	if err != nil {
+		h.logger.Error("failed to list tickets for export", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// 4. Stream CSV Response
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"tickets.csv\"")
+
+	// We are buffering the CSV write, but we could also write directly to w.
+	// encoding/csv writes to an io.Writer.
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write Header
+	header := []string{"ID", "Organization ID", "Title", "Status", "Priority", "Reporter ID", "Created At", "Description"}
+	if err := writer.Write(header); err != nil {
+		h.logger.Error("failed to write csv header", "error", err)
+		return
+	}
+
+	// Write Rows
+	for _, t := range tickets {
+		row := []string{
+			t.ID.String(),
+			t.OrganizationID.String(),
+			t.Title,
+			t.StatusID,
+			t.PriorityID,
+			t.ReporterID.String(),
+			t.CreatedAt.Format(time.RFC3339),
+			t.Description,
+		}
+		if err := writer.Write(row); err != nil {
+			h.logger.Error("failed to write csv row", "error", err)
+			return
+		}
+	}
+}
+
 func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -214,7 +288,7 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := port.TicketFilter{
-		OrganizationID: orgID,
+		OrganizationID: &orgID,
 	}
 
 	if status := r.URL.Query().Get("status"); status != "" {

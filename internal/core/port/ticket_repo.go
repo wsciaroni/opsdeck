@@ -9,7 +9,7 @@ import (
 
 // TicketFilter defines criteria for listing tickets.
 type TicketFilter struct {
-	OrganizationID uuid.UUID
+	OrganizationID *uuid.UUID
 	StatusID       *string
 	AssigneeID     *uuid.UUID
 	ReporterID     *uuid.UUID
