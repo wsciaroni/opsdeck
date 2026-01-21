@@ -29,9 +29,15 @@ func TestOrganizationRepository(t *testing.T) {
 
 	// Cleanup function
 	cleanup := func() {
-		pool.Exec(ctx, "TRUNCATE TABLE organization_members CASCADE")
-		pool.Exec(ctx, "TRUNCATE TABLE organizations CASCADE")
-		pool.Exec(ctx, "TRUNCATE TABLE users CASCADE")
+		if _, err := pool.Exec(ctx, "TRUNCATE TABLE organization_members CASCADE"); err != nil {
+			t.Logf("Failed to truncate organization_members: %v", err)
+		}
+		if _, err := pool.Exec(ctx, "TRUNCATE TABLE organizations CASCADE"); err != nil {
+			t.Logf("Failed to truncate organizations: %v", err)
+		}
+		if _, err := pool.Exec(ctx, "TRUNCATE TABLE users CASCADE"); err != nil {
+			t.Logf("Failed to truncate users: %v", err)
+		}
 	}
 	cleanup()
 	defer cleanup()
