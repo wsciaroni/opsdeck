@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -66,6 +68,14 @@ func (m *MockOrgRepo) Create(ctx context.Context, org *domain.Organization) erro
 
 func (m *MockOrgRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Organization, error) {
 	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Organization), args.Error(1)
+}
+
+func (m *MockOrgRepo) GetByShareToken(ctx context.Context, token string) (*domain.Organization, error) {
+	args := m.Called(ctx, token)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -200,6 +210,136 @@ func TestExportTickets(t *testing.T) {
 		req := httptest.NewRequest("GET", "/admin/export/tickets", nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, regularUser)
 		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+}
+
+func TestCreatePublicTicket(t *testing.T) {
+	t.Run("Success - Create Ticket for existing user", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "valid-token"
+		orgID := uuid.New()
+		org := &domain.Organization{
+			ID:               orgID,
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		userID := uuid.New()
+		user := &domain.User{
+			ID:    userID,
+			Email: "test@example.com",
+		}
+		ticket := &domain.Ticket{
+			ID:    uuid.New(),
+			Title: "New Public Ticket",
+		}
+
+		reqBody := map[string]string{
+			"token":       token,
+			"title":       "New Public Ticket",
+			"description": "Desc",
+			"name":        "Tester",
+			"email":       "test@example.com",
+			"priority_id": "low",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+		mockUserRepo.On("GetByEmail", mock.Anything, "test@example.com").Return(user, nil)
+		mockService.On("CreateTicket", mock.Anything, mock.MatchedBy(func(cmd port.CreateTicketCmd) bool {
+			return cmd.OrganizationID == orgID && cmd.ReporterID == userID && cmd.Title == "New Public Ticket"
+		})).Return(ticket, nil)
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("Success - Create Ticket for new user", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "valid-token"
+		orgID := uuid.New()
+		org := &domain.Organization{
+			ID:               orgID,
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+
+		reqBody := map[string]string{
+			"token":       token,
+			"title":       "New Public Ticket",
+			"description": "Desc",
+			"name":        "New User",
+			"email":       "new@example.com",
+			"priority_id": "low",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+		// User not found
+		mockUserRepo.On("GetByEmail", mock.Anything, "new@example.com").Return(nil, nil)
+		// Create User
+		newUserID := uuid.New()
+		mockUserRepo.On("Create", mock.Anything, mock.MatchedBy(func(u *domain.User) bool {
+			return u.Email == "new@example.com" && u.Name == "New User"
+		})).Return(nil).Run(func(args mock.Arguments) {
+			u := args.Get(1).(*domain.User)
+			u.ID = newUserID
+		})
+		// Create Ticket
+		mockService.On("CreateTicket", mock.Anything, mock.MatchedBy(func(cmd port.CreateTicketCmd) bool {
+			return cmd.Title == "New Public Ticket"
+		})).Return(&domain.Ticket{ID: uuid.New()}, nil).Run(func(args mock.Arguments) {
+			cmd := args.Get(1).(port.CreateTicketCmd)
+			assert.Equal(t, orgID, cmd.OrganizationID)
+			assert.Equal(t, newUserID, cmd.ReporterID)
+		})
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("Forbidden - Disabled Share Link", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "disabled-token"
+		org := &domain.Organization{
+			ShareLinkEnabled: false,
+		}
+		reqBody := map[string]string{"token": token}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)

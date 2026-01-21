@@ -34,6 +34,7 @@ func NewRouter(
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
 		r.Method(http.MethodGet, "/health", NewHealthHandler(db))
+		r.Post("/public/tickets", ticketHandler.CreatePublicTicket)
 
 		// Protected Routes
 		r.Group(func(r chi.Router) {
