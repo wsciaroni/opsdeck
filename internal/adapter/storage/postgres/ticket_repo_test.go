@@ -26,6 +26,12 @@ func TestTicketRepository_List(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
+	// Run migrations
+	if err := postgres.RunMigrations(ctx, dbURL); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		t.Skip("database not available")
