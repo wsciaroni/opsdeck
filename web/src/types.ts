@@ -43,3 +43,11 @@ export interface CreateTicketRequest {
   organization_id: string;
   location?: string;
 }
+
+export interface Member {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string;
+  role: string;
+}

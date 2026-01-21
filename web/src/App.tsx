@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import TicketDetail from './pages/TicketDetail';
+import TeamSettings from './pages/TeamSettings';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import { type ReactNode } from 'react';
@@ -33,6 +34,7 @@ function App() {
           <Route element={<RequireAuth><Layout><Outlet /></Layout></RequireAuth>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
+            <Route path="/organizations/:orgId/settings/team" element={<TeamSettings />} />
           </Route>
         </Routes>
       </AuthProvider>
