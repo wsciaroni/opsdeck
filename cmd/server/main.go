@@ -76,9 +76,18 @@ func main() {
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	googleCallbackURL := os.Getenv("GOOGLE_CALLBACK_URL")
+	sessionSecret := os.Getenv("SESSION_SECRET")
 
 	if googleClientID == "" || googleClientSecret == "" || googleCallbackURL == "" {
 		log.Fatal("Missing required environment variables: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL")
+	}
+
+	if sessionSecret == "" {
+		if os.Getenv("APP_ENV") == "production" {
+			log.Fatal("Missing required environment variable: SESSION_SECRET")
+		}
+		log.Println("WARNING: SESSION_SECRET is not set. Using insecure default for development.")
+		sessionSecret = "insecure-dev-secret"
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -91,7 +100,7 @@ func main() {
 		log.Fatalf("Failed to create OIDC provider: %v", err)
 	}
 	authService := service.NewAuthService(repo, orgRepo, oidcProvider, logger)
-	authHandler := handler.NewAuthHandler(authService, orgRepo, logger)
+	authHandler := handler.NewAuthHandler(authService, orgRepo, logger, sessionSecret)
 
 	// Init Ticket
 	ticketRepo := postgres.NewTicketRepository(pool)
@@ -107,7 +116,7 @@ func main() {
 	orgHandler := handler.NewOrgHandler(orgRepo, repo, logger)
 
 	// Init Middleware
-	authMiddleware := middleware.NewAuthMiddleware(repo, logger)
+	authMiddleware := middleware.NewAuthMiddleware(repo, logger, sessionSecret)
 
 	// Setup Router
 	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, authMiddleware)
