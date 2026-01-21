@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -19,7 +20,11 @@ func TestTicketRepository_List(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	dbURL := "postgres://user:password@localhost:5432/opsdeck?sslmode=disable"
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
