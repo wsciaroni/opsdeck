@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import TicketDetail from './pages/TicketDetail';
 import TeamSettings from './pages/TeamSettings';
+import PublicTicketSubmit from './pages/PublicTicketSubmit';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import { type ReactNode } from 'react';
@@ -33,6 +34,7 @@ function App() {
         <Toaster position="bottom-right" reverseOrder={false} />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/submit-ticket" element={<PublicTicketSubmit />} />
           <Route element={<RequireAuth><Layout><Outlet /></Layout></RequireAuth>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
