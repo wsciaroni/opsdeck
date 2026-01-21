@@ -115,9 +115,9 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port
 
 // ListTickets lists tickets based on the filter.
 func (s *TicketService) ListTickets(ctx context.Context, filter port.TicketFilter) ([]domain.Ticket, error) {
-	if filter.OrganizationID == uuid.Nil {
-		return nil, fmt.Errorf("organization_id is required")
-	}
+	// Warning: OrganizationID can be nil (for Admin Export).
+	// The caller (Handler) is responsible for verifying proper authorization (e.g. RoleAdmin)
+	// before calling this with a nil org filter.
 	return s.repo.List(ctx, filter)
 }
 

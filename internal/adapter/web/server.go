@@ -39,6 +39,10 @@ func NewRouter(
 		r.Group(func(r chi.Router) {
 			r.Use(authMW.Protect)
 			r.Get("/me", authHandler.Me)
+
+			// Admin Routes
+			r.Get("/admin/export/tickets", ticketHandler.ExportTickets)
+
 			r.Post("/tickets", ticketHandler.CreateTicket)
 			r.Get("/tickets", ticketHandler.ListTickets)
 			r.Get("/tickets/{ticketID}", ticketHandler.GetTicket)

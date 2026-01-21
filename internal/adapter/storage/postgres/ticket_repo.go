@@ -87,18 +87,24 @@ func (r *TicketRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.T
 }
 
 func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) ([]domain.Ticket, error) {
-	if filter.OrganizationID == uuid.Nil {
-		return nil, fmt.Errorf("organization_id is required for listing tickets")
-	}
-
 	query := `
 		SELECT id, organization_id, reporter_id, assignee_user_id, status_id, priority_id,
 		       title, description, location, created_at, updated_at, completed_at
 		FROM tickets
-		WHERE organization_id = $1
+		WHERE 1=1
 	`
-	args := []interface{}{filter.OrganizationID}
-	argIdx := 2
+	args := []interface{}{}
+	argIdx := 1
+
+	if filter.OrganizationID != nil {
+		query += fmt.Sprintf(" AND organization_id = $%d", argIdx)
+		args = append(args, *filter.OrganizationID)
+		argIdx++
+	} else if len(filter.OrganizationIDs) > 0 {
+		query += fmt.Sprintf(" AND organization_id = ANY($%d)", argIdx)
+		args = append(args, filter.OrganizationIDs)
+		argIdx++
+	}
 
 	if filter.StatusID != nil {
 		query += fmt.Sprintf(" AND status_id = $%d", argIdx)
