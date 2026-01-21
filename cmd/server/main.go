@@ -5,11 +5,11 @@ import (
 	"embed"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
-	"log/slog"
 
 	"github.com/wsciaroni/opsdeck/internal/adapter/auth/google"
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage"

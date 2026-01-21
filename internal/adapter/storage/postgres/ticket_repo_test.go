@@ -33,7 +33,8 @@ func TestTicketRepository_List(t *testing.T) {
 	defer pool.Close()
 
 	// Clear tables
-	pool.Exec(ctx, "TRUNCATE tickets, users, organizations CASCADE")
+	_, err = pool.Exec(ctx, "TRUNCATE tickets, users, organizations CASCADE")
+	require.NoError(t, err)
 
 	repo := postgres.NewTicketRepository(pool)
 	userRepo := postgres.NewUserRepository(pool)
