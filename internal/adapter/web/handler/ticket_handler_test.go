@@ -130,18 +130,26 @@ func TestExportTickets(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/admin/export/tickets", h.ExportTickets)
 
-	t.Run("Success - Admin exports all tickets", func(t *testing.T) {
+	t.Run("Success - Admin exports tickets for their orgs", func(t *testing.T) {
 		adminUser := &domain.User{
 			ID:    uuid.New(),
 			Role:  domain.RoleAdmin,
 			Email: "admin@example.com",
 		}
 
+		orgID := uuid.New()
+		memberships := []domain.UserMembership{
+			{
+				Organization: domain.Organization{ID: orgID},
+				Role:         "admin",
+			},
+		}
+
 		tickets := []domain.Ticket{
 			{
 				ID:             uuid.New(),
 				Title:          "Ticket 1",
-				OrganizationID: uuid.New(),
+				OrganizationID: orgID,
 				ReporterID:     uuid.New(),
 				StatusID:       "open",
 				PriorityID:     "high",
@@ -150,8 +158,13 @@ func TestExportTickets(t *testing.T) {
 			},
 		}
 
-		// Expect ListTickets with nil OrganizationID (all tickets)
-		mockService.On("ListTickets", mock.Anything, port.TicketFilter{OrganizationID: nil}).Return(tickets, nil)
+		// Expect checking memberships
+		mockOrgRepo.On("ListByUser", mock.Anything, adminUser.ID).Return(memberships, nil)
+
+		// Expect ListTickets with OrganizationIDs set
+		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
+			OrganizationIDs: []uuid.UUID{orgID},
+		}).Return(tickets, nil)
 
 		req := httptest.NewRequest("GET", "/admin/export/tickets", nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, adminUser)

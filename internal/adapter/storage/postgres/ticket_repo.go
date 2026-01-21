@@ -100,6 +100,10 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 		query += fmt.Sprintf(" AND organization_id = $%d", argIdx)
 		args = append(args, *filter.OrganizationID)
 		argIdx++
+	} else if len(filter.OrganizationIDs) > 0 {
+		query += fmt.Sprintf(" AND organization_id = ANY($%d)", argIdx)
+		args = append(args, filter.OrganizationIDs)
+		argIdx++
 	}
 
 	if filter.StatusID != nil {

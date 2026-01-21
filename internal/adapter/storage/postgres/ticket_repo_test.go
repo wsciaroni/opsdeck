@@ -112,4 +112,14 @@ func TestTicketRepository_List(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, tickets, 2)
 	})
+
+	t.Run("List By OrganizationIDs", func(t *testing.T) {
+		filter := port.TicketFilter{
+			OrganizationIDs: []uuid.UUID{org1.ID},
+		}
+		tickets, err := repo.List(ctx, filter)
+		require.NoError(t, err)
+		assert.Len(t, tickets, 1)
+		assert.Equal(t, ticket1.ID, tickets[0].ID)
+	})
 }
