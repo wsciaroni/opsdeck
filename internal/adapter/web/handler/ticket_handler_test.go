@@ -72,6 +72,10 @@ func (m *MockOrgRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Organi
 	return args.Get(0).(*domain.Organization), args.Error(1)
 }
 
+func (m *MockOrgRepo) Update(ctx context.Context, org *domain.Organization) error {
+	return m.Called(ctx, org).Error(0)
+}
+
 func (m *MockOrgRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error) {
 	args := m.Called(ctx, userID)
 	if args.Get(0) == nil {
