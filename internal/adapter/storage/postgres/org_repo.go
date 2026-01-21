@@ -39,6 +39,28 @@ func (r *OrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*do
 	return &org, nil
 }
 
+func (r *OrganizationRepository) GetByShareToken(ctx context.Context, token string) (*domain.Organization, error) {
+	query := `
+		SELECT id, name, slug, share_link_enabled, share_link_token, created_at, updated_at
+		FROM organizations
+		WHERE share_link_token = $1
+	`
+	var org domain.Organization
+	err := r.db.QueryRow(ctx, query, token).Scan(
+		&org.ID,
+		&org.Name,
+		&org.Slug,
+		&org.ShareLinkEnabled,
+		&org.ShareLinkToken,
+		&org.CreatedAt,
+		&org.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization by token: %w", err)
+	}
+	return &org, nil
+}
+
 func (r *OrganizationRepository) Create(ctx context.Context, org *domain.Organization) error {
 	query := `
 		INSERT INTO organizations (name, slug, share_link_enabled, share_link_token)

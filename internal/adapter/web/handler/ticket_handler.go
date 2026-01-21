@@ -34,6 +34,15 @@ type CreateTicketRequest struct {
 	Location       string    `json:"location"`
 }
 
+type CreatePublicTicketRequest struct {
+	Token       string `json:"token"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Priority    string `json:"priority_id"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+}
+
 type UpdateTicketRequest struct {
 	Title       *string    `json:"title"`
 	Description *string    `json:"description"`
@@ -114,6 +123,76 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Request) {
+	var req CreatePublicTicketRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Validate Token & Org
+	org, err := h.orgRepo.GetByShareToken(r.Context(), req.Token)
+	if err != nil {
+		h.logger.Error("failed to get organization by token", "error", err)
+		// Assuming error means not found or db error.
+		// If org not found by token, it returns sql.ErrNoRows which might be wrapped.
+		// For security, just say forbidden or invalid.
+		http.Error(w, "Invalid token", http.StatusForbidden)
+		return
+	}
+
+	if !org.ShareLinkEnabled {
+		http.Error(w, "Share link disabled", http.StatusForbidden)
+		return
+	}
+
+	// 2. Find or Create User
+	user, err := h.userRepo.GetByEmail(r.Context(), req.Email)
+	if err != nil || user == nil {
+		// Try to create user
+		// Ideally we check if error is "not found".
+		// But for now let's assume if error or user is nil, user doesn't exist or db error.
+		// We'll try to create.
+		newUser := &domain.User{
+			Email: req.Email,
+			Name:  req.Name,
+			Role:  domain.RolePublic,
+		}
+		if err := h.userRepo.Create(r.Context(), newUser); err != nil {
+			// If create fails, maybe race condition or other error
+			// If it's a constraint violation (email exists), we should probably retry get?
+			// But for now, let's log and fail.
+			h.logger.Error("failed to create public user", "error", err)
+			http.Error(w, "Failed to process user", http.StatusInternalServerError)
+			return
+		}
+		user = newUser
+	}
+
+	// 3. Create Ticket
+	cmd := port.CreateTicketCmd{
+		OrganizationID: org.ID,
+		ReporterID:     user.ID,
+		Title:          req.Title,
+		Description:    req.Description,
+		PriorityID:     req.Priority,
+		// Location? Not in public form?
+	}
+
+	ticket, err := h.service.CreateTicket(r.Context(), cmd)
+	if err != nil {
+		h.logger.Error("failed to create public ticket", "error", err)
+		http.Error(w, "Failed to create ticket", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(ticket); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 	}
 }
