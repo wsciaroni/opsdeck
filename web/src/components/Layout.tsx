@@ -24,8 +24,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   {currentOrg && (
                      <Link
                       to={`/organizations/${currentOrg.id}/settings/team`}
-                      className="text-gray-400 hover:text-gray-500 mr-4"
+                      className="text-gray-400 hover:text-gray-500 mr-4 focus:outline-none focus:text-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-md"
                       title="Team Settings"
+                      aria-label="Team settings"
                      >
                       <Settings className="h-5 w-5" />
                      </Link>
@@ -35,8 +36,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                   </span>
                   <button
                     onClick={logout}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-red-600 focus:outline-none transition ease-in-out duration-150"
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-150"
                     title="Logout"
+                    aria-label="Logout"
                   >
                     <LogOut className="h-5 w-5" />
                     <span className="ml-2 hidden sm:inline">Logout</span>
