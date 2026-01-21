@@ -9,11 +9,20 @@ export const client = axios.create({
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    // If the error is 401 from /me endpoint, suppress toast and redirect
+    // This prevents "Unauthorized" alerts and reloads during initial auth checks
+    if (error.response?.status === 401 && error.config?.url?.endsWith('/me')) {
+      return Promise.reject(error);
+    }
+
     const message = error.response?.data?.error || "Something went wrong";
     toast.error(message);
 
     if (error.response?.status === 401) {
-      window.location.href = '/login';
+      // Prevent infinite redirect loop if already on login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
 
     return Promise.reject(error);
