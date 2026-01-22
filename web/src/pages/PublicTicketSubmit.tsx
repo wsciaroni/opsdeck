@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createPublicTicket } from '../api/tickets';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Paperclip } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -15,13 +15,29 @@ export default function PublicTicketSubmit() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [priority, setPriority] = useState('low');
+  const [files, setFiles] = useState<FileList | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (data: { title: string; description: string; name: string; email: string; priority_id: string }) => {
+    mutationFn: (data: { title: string; description: string; name: string; email: string; priority_id: string; files: FileList | null }) => {
         if (!token) throw new Error("Missing token");
-        return createPublicTicket({ ...data, token });
+
+        const formData = new FormData();
+        formData.append('token', token);
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('name', data.name);
+        formData.append('email', data.email);
+        formData.append('priority_id', data.priority_id);
+
+        if (data.files) {
+          for (let i = 0; i < data.files.length; i++) {
+            formData.append('files', data.files[i]);
+          }
+        }
+
+        return createPublicTicket(formData);
     },
     onSuccess: () => {
       setSuccess(true);
@@ -46,7 +62,13 @@ export default function PublicTicketSubmit() {
         setError("Missing token");
         return;
     }
-    mutation.mutate({ title, description, name, email, priority_id: priority });
+    mutation.mutate({ title, description, name, email, priority_id: priority, files });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(e.target.files);
+    }
   };
 
   if (!token) {
@@ -76,6 +98,7 @@ export default function PublicTicketSubmit() {
                         setSuccess(false);
                         setTitle('');
                         setDescription('');
+                        setFiles(null);
                     }}
                     className="text-indigo-600 hover:text-indigo-500 font-medium"
                  >
@@ -197,6 +220,20 @@ export default function PublicTicketSubmit() {
                   <option value="high">High</option>
                   <option value="critical">Critical</option>
                 </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Attachments</label>
+              <div className="mt-1 flex items-center">
+                 <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2">
+                    <Paperclip className="h-4 w-4" />
+                    <span>Upload files</span>
+                    <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
+                 </label>
+                 {files && files.length > 0 && (
+                     <span className="ml-3 text-sm text-gray-500">{files.length} file(s) selected</span>
+                 )}
               </div>
             </div>
 

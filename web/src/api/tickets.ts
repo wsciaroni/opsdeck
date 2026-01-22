@@ -11,7 +11,7 @@ export async function getTicket(id: string): Promise<TicketDetail> {
   return response.data;
 }
 
-export async function createTicket(data: CreateTicketRequest): Promise<Ticket> {
+export async function createTicket(data: CreateTicketRequest | FormData): Promise<Ticket> {
   const response = await client.post('/tickets', data);
   return response.data;
 }
@@ -21,7 +21,7 @@ export async function updateTicket(id: string, data: { status_id?: string; prior
   return response.data;
 }
 
-export async function createPublicTicket(data: { token: string; title: string; description: string; name: string; email: string; priority_id: string }): Promise<Ticket> {
+export async function createPublicTicket(data: { token: string; title: string; description: string; name: string; email: string; priority_id: string } | FormData): Promise<Ticket> {
   const response = await client.post('/public/tickets', data);
   return response.data;
 }
