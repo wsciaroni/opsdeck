@@ -397,6 +397,32 @@ func (h *OrgHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 	// For MVP, we'll allow it but maybe warn or simple implementation:
 	// A user can demote themselves.
 
+	// Check if this action demotes the last owner
+	members, err := h.orgRepo.ListMembers(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to list organization members", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	ownerCount := 0
+	currentRole := ""
+	for _, m := range members {
+		if m.Role == "owner" {
+			ownerCount++
+		}
+		if m.UserID == userID {
+			currentRole = m.Role
+		}
+	}
+
+	if currentRole == "owner" && req.Role != "owner" {
+		if ownerCount <= 1 {
+			http.Error(w, "Cannot demote the last owner", http.StatusBadRequest)
+			return
+		}
+	}
+
 	if err := h.orgRepo.UpdateMemberRole(r.Context(), orgID, userID, req.Role); err != nil {
 		h.logger.Error("failed to update member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
