@@ -53,9 +53,11 @@ export default function TicketDetail() {
       <div className="flex items-center mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="mr-4 p-2 rounded-full hover:bg-gray-100 text-gray-500"
+          className="mr-4 p-2 rounded-full hover:bg-gray-100 text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          aria-label="Go back"
+          title="Go back"
         >
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6" aria-hidden="true" />
         </button>
         <h1 className="text-3xl font-bold text-gray-900">{ticket.title}</h1>
       </div>
