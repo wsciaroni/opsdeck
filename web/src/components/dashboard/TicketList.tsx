@@ -53,7 +53,7 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
     return <div className="bg-white shadow rounded-lg p-8 text-center text-red-500">Error loading tickets</div>;
   }
 
-  if (tickets && tickets.length === 0) {
+  if (tickets?.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg">
         <EmptyState

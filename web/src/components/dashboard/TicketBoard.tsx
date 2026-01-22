@@ -46,6 +46,12 @@ export default function TicketBoard({ tickets, isLoading, error, density }: Tick
     comfortable: 'text-base',
   }[density];
 
+  const handleKeyDown = (e: React.KeyboardEvent, ticketId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      navigate(`/tickets/${ticketId}`);
+    }
+  };
+
   return (
     <div className="flex h-full overflow-x-auto space-x-4 pb-4">
       {STATUS_COLUMNS.map((column) => (
@@ -60,9 +66,12 @@ export default function TicketBoard({ tickets, isLoading, error, density }: Tick
             {ticketsByStatus[column.id]?.map((ticket) => (
               <div
                 key={ticket.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => navigate(`/tickets/${ticket.id}`)}
+                onKeyDown={(e) => handleKeyDown(e, ticket.id)}
                 className={clsx(
-                  "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow",
+                  "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
                   paddingClass
                 )}
               >
