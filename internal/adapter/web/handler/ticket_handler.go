@@ -430,7 +430,8 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := port.TicketFilter{
-		OrganizationID: &orgID,
+		OrganizationID:     &orgID,
+		ExcludeDescription: true,
 	}
 
 	if status := r.URL.Query().Get("status"); status != "" {

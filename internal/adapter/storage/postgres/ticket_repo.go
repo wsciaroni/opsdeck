@@ -87,12 +87,17 @@ func (r *TicketRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.T
 }
 
 func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) ([]domain.Ticket, error) {
-	query := `
+	descriptionField := "description"
+	if filter.ExcludeDescription {
+		descriptionField = "'' as description"
+	}
+
+	query := fmt.Sprintf(`
 		SELECT id, organization_id, reporter_id, assignee_user_id, status_id, priority_id,
-		       title, description, location, created_at, updated_at, completed_at
+		       title, %s, location, created_at, updated_at, completed_at
 		FROM tickets
 		WHERE 1=1
-	`
+	`, descriptionField)
 	args := []interface{}{}
 	argIdx := 1
 
