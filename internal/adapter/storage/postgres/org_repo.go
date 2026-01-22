@@ -190,3 +190,16 @@ func (r *OrganizationRepository) RemoveMember(ctx context.Context, orgID uuid.UU
 	}
 	return nil
 }
+
+func (r *OrganizationRepository) UpdateMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error {
+	query := `
+		UPDATE organization_members
+		SET role = $1
+		WHERE organization_id = $2 AND user_id = $3
+	`
+	_, err := r.db.Exec(ctx, query, role, orgID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update member role: %w", err)
+	}
+	return nil
+}

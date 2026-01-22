@@ -346,6 +346,66 @@ func (h *OrgHandler) GetShareSettings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role"`
+}
+
+func (h *OrgHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	// Parse Org ID
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	// Parse User ID
+	userIDStr := chi.URLParam(r, "userID")
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid User ID", http.StatusBadRequest)
+		return
+	}
+
+	// Parse Request Body
+	var req UpdateMemberRoleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Role != "admin" && req.Role != "member" && req.Role != "owner" {
+		http.Error(w, "Invalid role", http.StatusBadRequest)
+		return
+	}
+
+	// Check Auth
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Check Permissions (Must be owner or admin of the org)
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Cannot change own role?
+	// Usually owners can't demote themselves if they are the only owner.
+	// For MVP, we'll allow it but maybe warn or simple implementation:
+	// A user can demote themselves.
+
+	if err := h.orgRepo.UpdateMemberRole(r.Context(), orgID, userID, req.Role); err != nil {
+		h.logger.Error("failed to update member role", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type UpdateShareSettingsRequest struct {
 	Enabled bool `json:"enabled"`
 }
