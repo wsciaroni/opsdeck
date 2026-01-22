@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web/handler"
-	authMiddleware "github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
+	appMiddleware "github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
 )
 
 func NewRouter(
@@ -18,13 +18,14 @@ func NewRouter(
 	ticketHandler *handler.TicketHandler,
 	orgHandler *handler.OrgHandler,
 	commentHandler *handler.CommentHandler,
-	authMW *authMiddleware.AuthMiddleware,
+	authMW *appMiddleware.AuthMiddleware,
 ) http.Handler {
 	r := chi.NewRouter()
 
 	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(appMiddleware.SecurityHeaders)
 
 	// Auth Routes
 	r.Get("/auth/login", authHandler.Login)
