@@ -140,3 +140,102 @@ func TestRegenerateShareToken(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
+
+func TestUpdateMemberRole(t *testing.T) {
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+
+	r := chi.NewRouter()
+	r.Put("/organizations/{id}/members/{userID}/role", h.UpdateMemberRole)
+
+	t.Run("Fail - Demote Last Owner", func(t *testing.T) {
+		orgID := uuid.New()
+		userID := uuid.New()
+		user := &domain.User{ID: userID}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
+		}, nil)
+
+		// ListMembers: Return only 1 owner (the user)
+		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
+			{UserID: userID, Role: "owner"},
+			{UserID: uuid.New(), Role: "member"},
+		}, nil)
+
+		body := map[string]string{"role": "admin"}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest("PUT", "/organizations/"+orgID.String()+"/members/"+userID.String()+"/role", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Cannot demote the last owner")
+	})
+
+	t.Run("Success - Demote One of Multiple Owners", func(t *testing.T) {
+		orgID := uuid.New()
+		userID := uuid.New()
+		otherOwnerID := uuid.New()
+		user := &domain.User{ID: userID}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
+		}, nil)
+
+		// ListMembers: Return 2 owners
+		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
+			{UserID: userID, Role: "owner"},
+			{UserID: otherOwnerID, Role: "owner"},
+		}, nil)
+
+		// Expect update
+		mockOrgRepo.On("UpdateMemberRole", mock.Anything, orgID, userID, "admin").Return(nil)
+
+		body := map[string]string{"role": "admin"}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest("PUT", "/organizations/"+orgID.String()+"/members/"+userID.String()+"/role", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+
+	t.Run("Success - Promote Member", func(t *testing.T) {
+		orgID := uuid.New()
+		ownerID := uuid.New()
+		memberID := uuid.New()
+		user := &domain.User{ID: ownerID}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, ownerID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
+		}, nil)
+
+		// ListMembers: Owner and Member
+		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
+			{UserID: ownerID, Role: "owner"},
+			{UserID: memberID, Role: "member"},
+		}, nil)
+
+		// Expect update
+		mockOrgRepo.On("UpdateMemberRole", mock.Anything, orgID, memberID, "admin").Return(nil)
+
+		body := map[string]string{"role": "admin"}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest("PUT", "/organizations/"+orgID.String()+"/members/"+memberID.String()+"/role", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+}
