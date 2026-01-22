@@ -218,7 +218,7 @@ export default function TeamSettings() {
 
         {/* Members List */}
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <ul role="list" className="divide-y divide-gray-200">
+          <ul className="divide-y divide-gray-200">
             {members?.map((member) => (
               <li key={member.id} className="px-4 py-4 sm:px-6 flex items-center justify-between hover:bg-gray-50">
                 <div className="flex items-center">
