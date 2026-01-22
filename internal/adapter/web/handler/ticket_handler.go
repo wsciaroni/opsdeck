@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -129,9 +130,24 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 
 func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreatePublicTicketRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+
+	contentType := r.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+		req.Token = r.FormValue("token")
+		req.Title = r.FormValue("title")
+		req.Description = r.FormValue("description")
+		req.Name = r.FormValue("name")
+		req.Email = r.FormValue("email")
+		req.Priority = r.FormValue("priority_id")
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// 1. Validate Token & Org
