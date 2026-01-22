@@ -37,9 +37,9 @@ export default function Dashboard() {
 
   if (!currentOrg) {
     return (
-        <div className="p-8 text-center text-gray-500">
-            Please select an organization.
-        </div>
+      <div className="p-8 text-center text-gray-500">
+        Please select an organization.
+      </div>
     );
   }
 

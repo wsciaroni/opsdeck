@@ -3,7 +3,8 @@ server
 
 bin/
 dist/
-cmd/server/dist/
+cmd/server/dist/*
+!cmd/server/dist/.gitkeep
 
 # Logs
 *.log
