@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTickets, createTicket } from '../api/tickets';
-import type { Ticket } from '../types';
-import { Plus, Inbox } from 'lucide-react';
+import type { Ticket, CreateTicketRequest } from '../types';
+import { Plus, Inbox, Paperclip } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import toast from 'react-hot-toast';
 
@@ -80,6 +80,7 @@ export default function Dashboard() {
     description: '',
     priority_id: 'medium',
   });
+  const [files, setFiles] = useState<FileList | null>(null);
 
   const { data: tickets, isLoading, error } = useQuery({
     queryKey: ['tickets', currentOrg?.id],
@@ -88,11 +89,12 @@ export default function Dashboard() {
   });
 
   const mutation = useMutation({
-    mutationFn: createTicket,
+    mutationFn: (data: FormData | CreateTicketRequest) => createTicket(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       setIsModalOpen(false);
       setNewTicket({ title: '', description: '', priority_id: 'medium' });
+      setFiles(null);
       toast.success("Ticket created!");
     },
   });
@@ -100,10 +102,25 @@ export default function Dashboard() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentOrg) return;
-    mutation.mutate({
-      ...newTicket,
-      organization_id: currentOrg.id,
-    });
+
+    const formData = new FormData();
+    formData.append('organization_id', currentOrg.id);
+    formData.append('title', newTicket.title);
+    formData.append('description', newTicket.description);
+    formData.append('priority_id', newTicket.priority_id);
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+    }
+
+    mutation.mutate(formData);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        setFiles(e.target.files);
+      }
   };
 
   if (!currentOrg) {
@@ -273,6 +290,19 @@ export default function Dashboard() {
                             <option value="high">High</option>
                             <option value="critical">Critical</option>
                           </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Attachments</label>
+                            <div className="mt-1 flex items-center">
+                                <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2">
+                                    <Paperclip className="h-4 w-4" />
+                                    <span>Upload files</span>
+                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
+                                </label>
+                                {files && files.length > 0 && (
+                                    <span className="ml-3 text-sm text-gray-500">{files.length} file(s) selected</span>
+                                )}
+                            </div>
                         </div>
                       </div>
                     </div>
