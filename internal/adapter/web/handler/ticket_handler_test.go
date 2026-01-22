@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -215,6 +216,57 @@ func TestExportTickets(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("Success - Multipart form data", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "valid-token-multipart"
+		orgID := uuid.New()
+		org := &domain.Organization{
+			ID:               orgID,
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		userID := uuid.New()
+		user := &domain.User{
+			ID:    userID,
+			Email: "multipart@example.com",
+		}
+		ticket := &domain.Ticket{
+			ID:    uuid.New(),
+			Title: "New Multipart Ticket",
+		}
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+		mockUserRepo.On("GetByEmail", mock.Anything, "multipart@example.com").Return(user, nil)
+		mockService.On("CreateTicket", mock.Anything, mock.MatchedBy(func(cmd port.CreateTicketCmd) bool {
+			return cmd.OrganizationID == orgID && cmd.ReporterID == userID && cmd.Title == "New Multipart Ticket"
+		})).Return(ticket, nil)
+
+		// Create multipart body
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("token", token)
+		_ = writer.WriteField("title", "New Multipart Ticket")
+		_ = writer.WriteField("description", "Desc")
+		_ = writer.WriteField("name", "Multipart User")
+		_ = writer.WriteField("email", "multipart@example.com")
+		_ = writer.WriteField("priority_id", "medium")
+		_ = writer.Close()
+
+		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 }
 
