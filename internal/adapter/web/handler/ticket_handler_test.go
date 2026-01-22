@@ -111,6 +111,10 @@ func (m *MockOrgRepo) RemoveMember(ctx context.Context, orgID, userID uuid.UUID)
 	return m.Called(ctx, orgID, userID).Error(0)
 }
 
+func (m *MockOrgRepo) UpdateMemberRole(ctx context.Context, orgID, userID uuid.UUID, role string) error {
+	return m.Called(ctx, orgID, userID, role).Error(0)
+}
+
 type MockUserRepo struct {
 	mock.Mock
 }

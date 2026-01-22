@@ -100,6 +100,11 @@ func (m *MockOrganizationRepository) RemoveMember(ctx context.Context, orgID uui
 	return args.Error(0)
 }
 
+func (m *MockOrganizationRepository) UpdateMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error {
+	args := m.Called(ctx, orgID, userID, role)
+	return args.Error(0)
+}
+
 // MockOIDCProvider is a mock implementation of port.OIDCProvider
 type MockOIDCProvider struct {
 	mock.Mock

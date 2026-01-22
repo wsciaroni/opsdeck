@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMembers, addMember, removeMember, getShareSettings, updateShareSettings, regenerateShareToken } from '../api/organizations';
+import { getMembers, addMember, removeMember, updateMemberRole, getShareSettings, updateShareSettings, regenerateShareToken } from '../api/organizations';
 import { Trash2, UserPlus, AlertCircle, Users, Link as LinkIcon, RefreshCw, Copy, Check } from 'lucide-react';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import clsx from 'clsx';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -44,12 +46,28 @@ export default function TeamSettings() {
     mutationFn: (userId: string) => removeMember(orgId!, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members', orgId] });
+      toast.success("Member removed");
     },
     onError: (err: unknown) => {
        if (axios.isAxiosError(err) && err.response) {
-        alert(String(err.response.data));
+        toast.error(String(err.response.data));
       } else {
-        alert('Failed to remove member');
+        toast.error('Failed to remove member');
+      }
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string, role: string }) => updateMemberRole(orgId!, userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members', orgId] });
+      toast.success("Role updated");
+    },
+    onError: (err: unknown) => {
+       if (axios.isAxiosError(err) && err.response) {
+        toast.error(String(err.response.data));
+      } else {
+        toast.error('Failed to update role');
       }
     },
   });
@@ -64,6 +82,10 @@ export default function TeamSettings() {
     if (confirm('Are you sure you want to remove this member?')) {
       removeMutation.mutate(memberId);
     }
+  };
+
+  const handleRoleChange = (memberId: string, role: string) => {
+      updateRoleMutation.mutate({ userId: memberId, role });
   };
 
   // Share Link Logic
@@ -239,17 +261,50 @@ export default function TeamSettings() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <span className={clsx(
-                    "px-2 inline-flex text-xs leading-5 font-semibold rounded-full",
-                    member.role === 'owner' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                  )}>
-                    {member.role}
-                  </span>
+                  <Menu as="div" className="relative inline-block text-left">
+                    <div>
+                      <MenuButton className={clsx(
+                        "inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50",
+                        member.role === 'owner' ? "text-green-800 bg-green-50 ring-green-300" : ""
+                      )}>
+                        {member.role}
+                        <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
+                      </MenuButton>
+                    </div>
 
-                  {/* Show remove button if user is owner or removing themselves (and not the only owner logic which backend handles or we ignore for MVP) */}
-                  {/* Actually, user can remove themselves. Owner can remove anyone. */}
-                  {/* We need to know current user's role in this org. */}
-                  {/* `currentOrg` from context might have role if we update it, or we check members list for current user. */}
+                    <MenuItems
+                      transition
+                      anchor="bottom end"
+                      className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
+                    >
+                      <div className="py-1">
+                        <MenuItem>
+                            <button
+                                onClick={() => handleRoleChange(member.id, 'member')}
+                                className="block w-full px-4 py-2 text-left text-sm text-gray-700 data-[focus]:bg-gray-100 data-[focus]:text-gray-900"
+                              >
+                                Member
+                              </button>
+                        </MenuItem>
+                        <MenuItem>
+                            <button
+                                onClick={() => handleRoleChange(member.id, 'admin')}
+                                className="block w-full px-4 py-2 text-left text-sm text-gray-700 data-[focus]:bg-gray-100 data-[focus]:text-gray-900"
+                              >
+                                Admin
+                              </button>
+                        </MenuItem>
+                        <MenuItem>
+                            <button
+                                onClick={() => handleRoleChange(member.id, 'owner')}
+                                className="block w-full px-4 py-2 text-left text-sm text-gray-700 data-[focus]:bg-gray-100 data-[focus]:text-gray-900"
+                              >
+                                Owner
+                              </button>
+                        </MenuItem>
+                      </div>
+                    </MenuItems>
+                  </Menu>
 
                   <button
                     onClick={() => handleRemoveMember(member.id)}

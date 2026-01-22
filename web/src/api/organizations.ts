@@ -19,6 +19,10 @@ export const removeMember = async (orgID: string, userID: string): Promise<void>
   await client.delete(`/organizations/${orgID}/members/${userID}`);
 };
 
+export const updateMemberRole = async (orgID: string, userID: string, role: string): Promise<void> => {
+  await client.put(`/organizations/${orgID}/members/${userID}/role`, { role });
+};
+
 export const getShareSettings = async (orgID: string): Promise<{ share_link_enabled: boolean; share_link_token?: string }> => {
   const response = await client.get(`/organizations/${orgID}/share`);
   return response.data;
