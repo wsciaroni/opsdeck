@@ -12,5 +12,6 @@ type Comment struct {
 	TicketID  uuid.UUID `json:"ticket_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	Body      string    `json:"body"`
+	Sensitive bool      `json:"sensitive"`
 	CreatedAt time.Time `json:"created_at"`
 }

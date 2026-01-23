@@ -32,9 +32,10 @@ func (s *CommentService) CreateComment(ctx context.Context, cmd port.CreateComme
 	}
 
 	comment := &domain.Comment{
-		TicketID: cmd.TicketID,
-		UserID:   cmd.UserID,
-		Body:     cmd.Body,
+		TicketID:  cmd.TicketID,
+		UserID:    cmd.UserID,
+		Body:      cmd.Body,
+		Sensitive: cmd.Sensitive,
 	}
 
 	if err := s.repo.Create(ctx, comment); err != nil {

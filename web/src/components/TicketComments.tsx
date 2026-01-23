@@ -4,6 +4,7 @@ import { getComments, createComment } from '../api/comments';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
+import { Lock } from 'lucide-react';
 
 interface TicketCommentsProps {
   ticketId: string;
@@ -11,6 +12,7 @@ interface TicketCommentsProps {
 
 export default function TicketComments({ ticketId }: TicketCommentsProps) {
   const [body, setBody] = useState('');
+  const [sensitive, setSensitive] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: comments, isLoading, isError } = useQuery({
@@ -20,9 +22,10 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
   });
 
   const mutation = useMutation({
-    mutationFn: (newBody: string) => createComment(ticketId, { body: newBody }),
+    mutationFn: () => createComment(ticketId, { body, sensitive }),
     onSuccess: () => {
       setBody('');
+      setSensitive(false);
       queryClient.invalidateQueries({ queryKey: ['comments', ticketId] });
       toast.success("Comment posted!");
     },
@@ -31,14 +34,14 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!body.trim()) return;
-    mutation.mutate(body);
+    mutation.mutate();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!body.trim()) return;
-      mutation.mutate(body);
+      mutation.mutate();
     }
   };
 
@@ -73,9 +76,15 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div>
-                    <div className="text-sm">
+                    <div className="text-sm flex items-center">
                       <span className="font-medium text-gray-900 mr-2">{comment.user.name}</span>
-                      <span className="text-gray-500">{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+                      <span className="text-gray-500 mr-2">{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+                      {comment.sensitive && (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                          <Lock className="w-3 h-3 mr-1" />
+                          Sensitive
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 text-sm text-gray-700">
                       <p className="whitespace-pre-wrap">{comment.body}</p>
@@ -106,7 +115,20 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
                 disabled={mutation.isPending}
               />
             </div>
-            <div className="mt-3 flex items-center justify-end">
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="comment-sensitive"
+                  name="comment-sensitive"
+                  type="checkbox"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  checked={sensitive}
+                  onChange={(e) => setSensitive(e.target.checked)}
+                />
+                <label htmlFor="comment-sensitive" className="ml-2 block text-sm text-gray-900">
+                  Mark as sensitive
+                </label>
+              </div>
               <button
                 type="submit"
                 disabled={mutation.isPending || !body.trim()}

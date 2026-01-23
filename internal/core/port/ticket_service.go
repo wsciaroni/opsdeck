@@ -15,6 +15,7 @@ type CreateTicketCmd struct {
 	Description    string
 	Location       string
 	PriorityID     string
+	Sensitive      bool
 }
 
 // UpdateTicketCmd defines the command to update an existing ticket.
@@ -25,6 +26,7 @@ type UpdateTicketCmd struct {
 	Title          *string
 	Description    *string
 	Location       *string
+	Sensitive      *bool
 }
 
 // TicketService defines the interface for ticket business logic.

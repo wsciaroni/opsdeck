@@ -43,6 +43,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, cmd port.CreateTicketC
 		Location:       cmd.Location,
 		StatusID:       domain.TicketStatusNew,
 		PriorityID:     cmd.PriorityID,
+		Sensitive:      cmd.Sensitive,
 	}
 
 	if err := s.repo.Create(ctx, ticket); err != nil {
@@ -85,6 +86,10 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port
 		} else {
 			ticket.AssigneeUserID = cmd.AssigneeUserID
 		}
+	}
+
+	if cmd.Sensitive != nil {
+		ticket.Sensitive = *cmd.Sensitive
 	}
 
 	if cmd.StatusID != nil {

@@ -19,8 +19,8 @@ func NewCommentRepository(db *pgxpool.Pool) *CommentRepository {
 
 func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment) error {
 	query := `
-		INSERT INTO comments (ticket_id, user_id, body)
-		VALUES ($1, $2, $3)
+		INSERT INTO comments (ticket_id, user_id, body, sensitive)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at
 	`
 
@@ -28,6 +28,7 @@ func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment)
 		comment.TicketID,
 		comment.UserID,
 		comment.Body,
+		comment.Sensitive,
 	).Scan(&comment.ID, &comment.CreatedAt)
 
 	if err != nil {
@@ -39,7 +40,7 @@ func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment)
 
 func (r *CommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error) {
 	query := `
-		SELECT id, ticket_id, user_id, body, created_at
+		SELECT id, ticket_id, user_id, body, sensitive, created_at
 		FROM comments
 		WHERE ticket_id = $1
 		ORDER BY created_at ASC
@@ -59,6 +60,7 @@ func (r *CommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID
 			&c.TicketID,
 			&c.UserID,
 			&c.Body,
+			&c.Sensitive,
 			&c.CreatedAt,
 		)
 		if err != nil {

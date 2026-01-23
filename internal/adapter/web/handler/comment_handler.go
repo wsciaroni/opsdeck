@@ -41,7 +41,8 @@ func NewCommentHandler(
 }
 
 type CreateCommentRequest struct {
-	Body string `json:"body"`
+	Body      string `json:"body"`
+	Sensitive bool   `json:"sensitive"`
 }
 
 type UserSummary struct {
@@ -53,6 +54,7 @@ type UserSummary struct {
 type CommentResponse struct {
 	ID        uuid.UUID   `json:"id"`
 	Body      string      `json:"body"`
+	Sensitive bool        `json:"sensitive"`
 	CreatedAt time.Time   `json:"created_at"`
 	User      UserSummary `json:"user"`
 }
@@ -97,9 +99,10 @@ func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := port.CreateCommentCmd{
-		TicketID: ticketID,
-		UserID:   user.ID,
-		Body:     req.Body,
+		TicketID:  ticketID,
+		UserID:    user.ID,
+		Body:      req.Body,
+		Sensitive: req.Sensitive,
 	}
 
 	comment, err := h.commentService.CreateComment(r.Context(), cmd)
@@ -113,6 +116,7 @@ func (h *CommentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	resp := CommentResponse{
 		ID:        comment.ID,
 		Body:      comment.Body,
+		Sensitive: comment.Sensitive,
 		CreatedAt: comment.CreatedAt,
 		User: UserSummary{
 			ID:        user.ID,
@@ -199,6 +203,7 @@ func (h *CommentHandler) List(w http.ResponseWriter, r *http.Request) {
 		respList = append(respList, CommentResponse{
 			ID:        c.ID,
 			Body:      c.Body,
+			Sensitive: c.Sensitive,
 			CreatedAt: c.CreatedAt,
 			User:      userSummary,
 		})
