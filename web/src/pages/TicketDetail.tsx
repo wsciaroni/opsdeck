@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTicket, updateTicket } from '../api/tickets';
+import { getMembers } from '../api/organizations';
 import TicketComments from '../components/TicketComments';
 import { ArrowLeft, Lock } from 'lucide-react';
 import type { Ticket } from '../types';
@@ -17,8 +18,14 @@ export default function TicketDetail() {
     enabled: !!id,
   });
 
+  const { data: members } = useQuery({
+    queryKey: ['members', ticket?.organization_id],
+    queryFn: () => getMembers(ticket!.organization_id),
+    enabled: !!ticket?.organization_id,
+  });
+
   const mutation = useMutation({
-    mutationFn: (data: { status_id?: string; priority_id?: string; sensitive?: boolean }) =>
+    mutationFn: (data: { status_id?: string; priority_id?: string; sensitive?: boolean; assignee_id?: string | null }) =>
       updateTicket(id!, data),
     onSuccess: (updatedTicket) => {
       queryClient.setQueryData(['ticket', id], (oldData: Ticket) => ({
@@ -45,6 +52,10 @@ export default function TicketDetail() {
 
   const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     mutation.mutate({ priority_id: e.target.value });
+  };
+
+  const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    mutation.mutate({ assignee_id: e.target.value });
   };
 
   return (
@@ -105,6 +116,24 @@ export default function TicketDetail() {
           </select>
         </div>
 
+        <div>
+          <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 mr-2 mb-1">Assignee</label>
+          <select
+            id="assignee"
+            value={ticket.assignee_user_id || '00000000-0000-0000-0000-000000000000'}
+            onChange={handleAssigneeChange}
+            disabled={mutation.isPending}
+            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+          >
+            <option value="00000000-0000-0000-0000-000000000000">Unassigned</option>
+            {members?.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex items-center ml-auto">
            <label className="inline-flex items-center cursor-pointer">
             <input
@@ -132,6 +161,12 @@ export default function TicketDetail() {
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{ticket.reporter_name}</dd>
             </div>
             <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500">Assignee</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {ticket.assignee_name || (ticket.assignee_user_id && members?.find(m => m.id === ticket.assignee_user_id)?.name) || 'Unassigned'}
+              </dd>
+            </div>
+            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">Created At</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {new Date(ticket.created_at).toLocaleString()}

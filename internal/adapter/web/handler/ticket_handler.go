@@ -25,6 +25,7 @@ type TicketHandler struct {
 type TicketDetailResponse struct {
 	*domain.Ticket
 	ReporterName string `json:"reporter_name"`
+	AssigneeName string `json:"assignee_name"`
 }
 
 type CreateTicketRequest struct {
@@ -118,9 +119,21 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		reporterName = reporter.Name
 	}
 
+	assigneeName := ""
+	if ticket.AssigneeUserID != nil {
+		assignee, err := h.userRepo.GetByID(r.Context(), *ticket.AssigneeUserID)
+		if err != nil {
+			h.logger.Error("failed to get assignee", "error", err)
+			// continue without assignee name
+		} else if assignee != nil {
+			assigneeName = assignee.Name
+		}
+	}
+
 	resp := TicketDetailResponse{
 		Ticket:       ticket,
 		ReporterName: reporterName,
+		AssigneeName: assigneeName,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
