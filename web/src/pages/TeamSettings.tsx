@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMembers, addMember, removeMember, updateMemberRole, getShareSettings, updateShareSettings, regenerateShareToken } from '../api/organizations';
-import { Trash2, UserPlus, AlertCircle, Users, Link as LinkIcon, RefreshCw, Copy, Check } from 'lucide-react';
+import { getMembers, addMember, removeMember, updateMemberRole, getShareSettings, updateShareSettings, regenerateShareToken, getPublicViewSettings, updatePublicViewSettings, regeneratePublicViewToken } from '../api/organizations';
+import { Trash2, UserPlus, AlertCircle, Users, Link as LinkIcon, RefreshCw, Copy, Check, Eye } from 'lucide-react';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import clsx from 'clsx';
@@ -124,6 +124,42 @@ export default function TeamSettings() {
     }
   };
 
+  // Public View Link Logic
+  const { data: publicViewSettings } = useQuery({
+    queryKey: ['publicViewSettings', orgId],
+    queryFn: () => getPublicViewSettings(orgId!),
+    enabled: !!orgId,
+  });
+
+  const updatePublicViewMutation = useMutation({
+    mutationFn: (enabled: boolean) => updatePublicViewSettings(orgId!, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publicViewSettings', orgId] });
+      toast.success("Public view settings updated");
+    },
+    onError: () => toast.error("Failed to update public view settings"),
+  });
+
+  const regeneratePublicViewTokenMutation = useMutation({
+    mutationFn: () => regeneratePublicViewToken(orgId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publicViewSettings', orgId] });
+      toast.success("Public view link regenerated");
+    },
+    onError: () => toast.error("Failed to regenerate public view link"),
+  });
+
+  const [copiedPublic, setCopiedPublic] = useState(false);
+  const copyPublicLink = () => {
+    if (publicViewSettings?.public_view_token) {
+      const url = `${window.location.origin}/public/board?token=${publicViewSettings.public_view_token}`;
+      navigator.clipboard.writeText(url);
+      setCopiedPublic(true);
+      setTimeout(() => setCopiedPublic(false), 2000);
+      toast.success("Link copied to clipboard");
+    }
+  };
+
   if (isLoading) return <div className="p-6">Loading members...</div>;
 
   // We can also check if currentOrg.id === orgId if we want to be strict on UI side
@@ -197,6 +233,76 @@ export default function TeamSettings() {
                         title="Regenerate Link"
                     >
                         <RefreshCw className={clsx("h-5 w-5 text-gray-400", regenerateTokenMutation.isPending && "animate-spin")} />
+                    </button>
+                </div>
+            )}
+        </div>
+
+        {/* Public View Link Section */}
+        <div className="bg-white shadow sm:rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                    <Eye className="h-5 w-5 mr-2 text-gray-500" />
+                    Public View Link
+                </h2>
+                <div className="flex items-center">
+                     <span className="mr-3 text-sm text-gray-700">
+                        {publicViewSettings?.public_view_enabled ? 'Enabled' : 'Disabled'}
+                     </span>
+                     <button
+                        onClick={() => updatePublicViewMutation.mutate(!publicViewSettings?.public_view_enabled)}
+                        type="button"
+                        className={clsx(
+                            publicViewSettings?.public_view_enabled ? 'bg-indigo-600' : 'bg-gray-200',
+                            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+                        )}
+                        role="switch"
+                        aria-checked={publicViewSettings?.public_view_enabled}
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={clsx(
+                                publicViewSettings?.public_view_enabled ? 'translate-x-5' : 'translate-x-0',
+                                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                        />
+                    </button>
+                </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4">
+                Allow anyone with the link to view the organization's public dashboard.
+            </p>
+
+            {publicViewSettings?.public_view_enabled && (
+                <div className="mt-2 flex rounded-md shadow-sm">
+                    <div className="relative flex-grow focus-within:z-10">
+                        <input
+                            type="text"
+                            readOnly
+                            className="block w-full rounded-none rounded-l-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-gray-50 text-gray-500"
+                            value={publicViewSettings?.public_view_token ? `${window.location.origin}/public/board?token=${publicViewSettings.public_view_token}` : ''}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={copyPublicLink}
+                        className="relative -ml-px inline-flex items-center border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                        {copiedPublic ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5 text-gray-400" />}
+                        <span className="sr-only">Copy link</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (confirm('Regenerating the link will invalidate the old one. Continue?')) {
+                                regeneratePublicViewTokenMutation.mutate();
+                            }
+                        }}
+                        className="relative -ml-px inline-flex items-center rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        title="Regenerate Link"
+                    >
+                        <RefreshCw className={clsx("h-5 w-5 text-gray-400", regeneratePublicViewTokenMutation.isPending && "animate-spin")} />
                     </button>
                 </div>
             )}

@@ -102,6 +102,130 @@ func TestUpdateShareSettings(t *testing.T) {
 	})
 }
 
+func TestGetPublicViewSettings(t *testing.T) {
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+
+	r := chi.NewRouter()
+	r.Get("/organizations/{id}/public-view", h.GetPublicViewSettings)
+
+	t.Run("Success", func(t *testing.T) {
+		orgID := uuid.New()
+		userID := uuid.New()
+		user := &domain.User{ID: userID}
+
+		token := "some-token"
+		org := &domain.Organization{
+			ID:               orgID,
+			PublicViewEnabled: true,
+			PublicViewToken:   &token,
+		}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "member"},
+		}, nil)
+		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
+
+		req := httptest.NewRequest("GET", "/organizations/"+orgID.String()+"/public-view", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp struct {
+			PublicViewEnabled bool    `json:"public_view_enabled"`
+			PublicViewToken   *string `json:"public_view_token"`
+		}
+		err := json.NewDecoder(w.Body).Decode(&resp)
+		assert.NoError(t, err)
+		assert.True(t, resp.PublicViewEnabled)
+		assert.Equal(t, token, *resp.PublicViewToken)
+	})
+}
+
+func TestUpdatePublicViewSettings(t *testing.T) {
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+
+	r := chi.NewRouter()
+	r.Put("/organizations/{id}/public-view", h.UpdatePublicViewSettings)
+
+	t.Run("Success - Enable Public View", func(t *testing.T) {
+		orgID := uuid.New()
+		userID := uuid.New()
+		user := &domain.User{ID: userID}
+
+		org := &domain.Organization{
+			ID:               orgID,
+			PublicViewEnabled: false,
+			PublicViewToken:   nil,
+		}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "admin"},
+		}, nil)
+		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
+		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
+			return o.PublicViewEnabled == true && o.PublicViewToken != nil
+		})).Return(nil)
+
+		body := map[string]bool{"enabled": true}
+		bodyBytes, _ := json.Marshal(body)
+		req := httptest.NewRequest("PUT", "/organizations/"+orgID.String()+"/public-view", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
+func TestRegeneratePublicViewToken(t *testing.T) {
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+
+	r := chi.NewRouter()
+	r.Post("/organizations/{id}/public-view/regenerate", h.RegeneratePublicViewToken)
+
+	t.Run("Success", func(t *testing.T) {
+		orgID := uuid.New()
+		userID := uuid.New()
+		user := &domain.User{ID: userID}
+
+		oldToken := "old-token"
+		org := &domain.Organization{
+			ID:               orgID,
+			PublicViewEnabled: true,
+			PublicViewToken:   &oldToken,
+		}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
+		}, nil)
+		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
+		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
+			return o.PublicViewToken != nil && *o.PublicViewToken != oldToken
+		})).Return(nil)
+
+		req := httptest.NewRequest("POST", "/organizations/"+orgID.String()+"/public-view/regenerate", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
 func TestRegenerateShareToken(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)

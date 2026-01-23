@@ -83,6 +83,14 @@ func (m *MockOrgRepo) GetByShareToken(ctx context.Context, token string) (*domai
 	return args.Get(0).(*domain.Organization), args.Error(1)
 }
 
+func (m *MockOrgRepo) GetByPublicViewToken(ctx context.Context, token string) (*domain.Organization, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Organization), args.Error(1)
+}
+
 func (m *MockOrgRepo) Update(ctx context.Context, org *domain.Organization) error {
 	return m.Called(ctx, org).Error(0)
 }
