@@ -63,6 +63,10 @@ func NewRouter(
 			r.Get("/organizations/{id}/share", orgHandler.GetShareSettings)
 			r.Put("/organizations/{id}/share", orgHandler.UpdateShareSettings)
 			r.Post("/organizations/{id}/share/regenerate", orgHandler.RegenerateShareToken)
+
+			r.Get("/organizations/{id}/public-view", orgHandler.GetPublicViewSettings)
+			r.Put("/organizations/{id}/public-view", orgHandler.UpdatePublicViewSettings)
+			r.Post("/organizations/{id}/public-view/regenerate", orgHandler.RegeneratePublicViewToken)
 		})
 	})
 

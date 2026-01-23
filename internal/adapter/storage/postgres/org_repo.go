@@ -19,7 +19,7 @@ func NewOrganizationRepository(db *pgxpool.Pool) *OrganizationRepository {
 
 func (r *OrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Organization, error) {
 	query := `
-		SELECT id, name, slug, share_link_enabled, share_link_token, created_at, updated_at
+		SELECT id, name, slug, share_link_enabled, share_link_token, public_view_enabled, public_view_token, created_at, updated_at
 		FROM organizations
 		WHERE id = $1
 	`
@@ -30,6 +30,8 @@ func (r *OrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*do
 		&org.Slug,
 		&org.ShareLinkEnabled,
 		&org.ShareLinkToken,
+		&org.PublicViewEnabled,
+		&org.PublicViewToken,
 		&org.CreatedAt,
 		&org.UpdatedAt,
 	)
@@ -41,7 +43,7 @@ func (r *OrganizationRepository) GetByID(ctx context.Context, id uuid.UUID) (*do
 
 func (r *OrganizationRepository) GetByShareToken(ctx context.Context, token string) (*domain.Organization, error) {
 	query := `
-		SELECT id, name, slug, share_link_enabled, share_link_token, created_at, updated_at
+		SELECT id, name, slug, share_link_enabled, share_link_token, public_view_enabled, public_view_token, created_at, updated_at
 		FROM organizations
 		WHERE share_link_token = $1
 	`
@@ -52,6 +54,8 @@ func (r *OrganizationRepository) GetByShareToken(ctx context.Context, token stri
 		&org.Slug,
 		&org.ShareLinkEnabled,
 		&org.ShareLinkToken,
+		&org.PublicViewEnabled,
+		&org.PublicViewToken,
 		&org.CreatedAt,
 		&org.UpdatedAt,
 	)
@@ -61,13 +65,37 @@ func (r *OrganizationRepository) GetByShareToken(ctx context.Context, token stri
 	return &org, nil
 }
 
+func (r *OrganizationRepository) GetByPublicViewToken(ctx context.Context, token string) (*domain.Organization, error) {
+	query := `
+		SELECT id, name, slug, share_link_enabled, share_link_token, public_view_enabled, public_view_token, created_at, updated_at
+		FROM organizations
+		WHERE public_view_token = $1
+	`
+	var org domain.Organization
+	err := r.db.QueryRow(ctx, query, token).Scan(
+		&org.ID,
+		&org.Name,
+		&org.Slug,
+		&org.ShareLinkEnabled,
+		&org.ShareLinkToken,
+		&org.PublicViewEnabled,
+		&org.PublicViewToken,
+		&org.CreatedAt,
+		&org.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization by public view token: %w", err)
+	}
+	return &org, nil
+}
+
 func (r *OrganizationRepository) Create(ctx context.Context, org *domain.Organization) error {
 	query := `
-		INSERT INTO organizations (name, slug, share_link_enabled, share_link_token)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO organizations (name, slug, share_link_enabled, share_link_token, public_view_enabled, public_view_token)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
-	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken).Scan(&org.ID, &org.CreatedAt, &org.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken, org.PublicViewEnabled, org.PublicViewToken).Scan(&org.ID, &org.CreatedAt, &org.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create organization: %w", err)
 	}
@@ -77,11 +105,11 @@ func (r *OrganizationRepository) Create(ctx context.Context, org *domain.Organiz
 func (r *OrganizationRepository) Update(ctx context.Context, org *domain.Organization) error {
 	query := `
 		UPDATE organizations
-		SET name = $1, slug = $2, share_link_enabled = $3, share_link_token = $4, updated_at = NOW()
-		WHERE id = $5
+		SET name = $1, slug = $2, share_link_enabled = $3, share_link_token = $4, public_view_enabled = $5, public_view_token = $6, updated_at = NOW()
+		WHERE id = $7
 		RETURNING updated_at
 	`
-	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken, org.ID).Scan(&org.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, org.Name, org.Slug, org.ShareLinkEnabled, org.ShareLinkToken, org.PublicViewEnabled, org.PublicViewToken, org.ID).Scan(&org.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update organization: %w", err)
 	}
@@ -102,7 +130,7 @@ func (r *OrganizationRepository) AddMember(ctx context.Context, orgID uuid.UUID,
 
 func (r *OrganizationRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error) {
 	query := `
-		SELECT o.id, o.name, o.slug, o.share_link_enabled, o.share_link_token, o.created_at, o.updated_at, om.role
+		SELECT o.id, o.name, o.slug, o.share_link_enabled, o.share_link_token, o.public_view_enabled, o.public_view_token, o.created_at, o.updated_at, om.role
 		FROM organizations o
 		JOIN organization_members om ON o.id = om.organization_id
 		WHERE om.user_id = $1
@@ -122,6 +150,8 @@ func (r *OrganizationRepository) ListByUser(ctx context.Context, userID uuid.UUI
 			&m.Organization.Slug,
 			&m.Organization.ShareLinkEnabled,
 			&m.Organization.ShareLinkToken,
+			&m.Organization.PublicViewEnabled,
+			&m.Organization.PublicViewToken,
 			&m.Organization.CreatedAt,
 			&m.Organization.UpdatedAt,
 			&m.Role,

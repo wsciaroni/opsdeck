@@ -13,6 +13,8 @@ type Organization struct {
 	Slug             string    `json:"slug"`
 	ShareLinkEnabled bool      `json:"share_link_enabled"`
 	ShareLinkToken   *string   `json:"share_link_token"`
+	PublicViewEnabled bool      `json:"public_view_enabled"`
+	PublicViewToken   *string   `json:"public_view_token"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }

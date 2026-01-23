@@ -37,3 +37,18 @@ export const regenerateShareToken = async (orgID: string): Promise<{ share_link_
   const response = await client.post(`/organizations/${orgID}/share/regenerate`);
   return response.data;
 };
+
+export const getPublicViewSettings = async (orgID: string): Promise<{ public_view_enabled: boolean; public_view_token?: string }> => {
+  const response = await client.get(`/organizations/${orgID}/public-view`);
+  return response.data;
+};
+
+export const updatePublicViewSettings = async (orgID: string, enabled: boolean): Promise<{ public_view_enabled: boolean; public_view_token?: string }> => {
+  const response = await client.put(`/organizations/${orgID}/public-view`, { enabled });
+  return response.data;
+};
+
+export const regeneratePublicViewToken = async (orgID: string): Promise<{ public_view_enabled: boolean; public_view_token?: string }> => {
+  const response = await client.post(`/organizations/${orgID}/public-view/regenerate`);
+  return response.data;
+};

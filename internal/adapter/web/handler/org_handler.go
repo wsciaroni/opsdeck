@@ -578,3 +578,156 @@ func generateToken() string {
 	}
 	return hex.EncodeToString(b)
 }
+
+func (h *OrgHandler) GetPublicViewSettings(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !h.isMember(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		PublicViewEnabled bool    `json:"public_view_enabled"`
+		PublicViewToken   *string `json:"public_view_token"`
+	}{
+		PublicViewEnabled: org.PublicViewEnabled,
+		PublicViewToken:   org.PublicViewToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+type UpdatePublicViewSettingsRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (h *OrgHandler) UpdatePublicViewSettings(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdatePublicViewSettingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Only owner/admin can update settings
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	org.PublicViewEnabled = req.Enabled
+	if req.Enabled && org.PublicViewToken == nil {
+		token := generateToken()
+		org.PublicViewToken = &token
+	}
+
+	if err := h.orgRepo.Update(r.Context(), org); err != nil {
+		h.logger.Error("failed to update organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		PublicViewEnabled bool    `json:"public_view_enabled"`
+		PublicViewToken   *string `json:"public_view_token"`
+	}{
+		PublicViewEnabled: org.PublicViewEnabled,
+		PublicViewToken:   org.PublicViewToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+func (h *OrgHandler) RegeneratePublicViewToken(w http.ResponseWriter, r *http.Request) {
+	orgIDStr := chi.URLParam(r, "id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Organization ID", http.StatusBadRequest)
+		return
+	}
+
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Only owner/admin can update settings
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to get organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	token := generateToken()
+	org.PublicViewToken = &token
+
+	if err := h.orgRepo.Update(r.Context(), org); err != nil {
+		h.logger.Error("failed to update organization", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		PublicViewEnabled bool    `json:"public_view_enabled"`
+		PublicViewToken   *string `json:"public_view_token"`
+	}{
+		PublicViewEnabled: org.PublicViewEnabled,
+		PublicViewToken:   org.PublicViewToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		h.logger.Error("failed to encode response", "error", err)
+	}
+}
