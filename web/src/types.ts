@@ -35,6 +35,7 @@ export interface Ticket {
 
 export interface TicketDetail extends Ticket {
   reporter_name: string;
+  assignee_name?: string;
 }
 
 export interface CreateTicketRequest {
