@@ -454,4 +454,73 @@ func TestListTickets(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
+
+	t.Run("Success - List tickets with assignee names", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+
+		r := chi.NewRouter()
+		r.Get("/tickets", h.ListTickets)
+
+		user := &domain.User{
+			ID:   uuid.New(),
+			Role: domain.RoleStaff,
+		}
+		orgID := uuid.New()
+		assigneeID := uuid.New()
+		reporterID := uuid.New()
+
+		memberships := []domain.UserMembership{
+			{
+				Organization: domain.Organization{ID: orgID},
+				Role:         "member",
+			},
+		}
+
+		tickets := []domain.Ticket{
+			{
+				ID:             uuid.New(),
+				Title:          "Ticket 1",
+				OrganizationID: orgID,
+				ReporterID:     reporterID,
+				AssigneeUserID: &assigneeID,
+				StatusID:       "open",
+				PriorityID:     "high",
+				CreatedAt:      time.Now(),
+			},
+		}
+
+		members := []domain.Member{
+			{UserID: assigneeID, Name: "Assignee User"},
+			{UserID: reporterID, Name: "Reporter User"},
+		}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+		// Expect ListTickets with ExcludeDescription: true
+		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
+			OrganizationID:     &orgID,
+			ExcludeDescription: true,
+		}).Return(tickets, nil)
+
+		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return(members, nil)
+
+		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String(), nil)
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []handler.TicketDetailResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Len(t, response, 1)
+		assert.Equal(t, "Assignee User", response[0].AssigneeName)
+		assert.Equal(t, "Reporter User", response[0].ReporterName)
+	})
 }
