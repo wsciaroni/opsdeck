@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Ticket } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
@@ -23,15 +24,18 @@ const STATUS_COLUMNS = [
 export default function TicketBoard({ tickets, isLoading, error, density }: TicketBoardProps) {
   const navigate = useNavigate();
 
+  // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
+  const ticketsByStatus = useMemo(() => {
+    return (tickets || []).reduce((acc, ticket) => {
+      const status = ticket.status_id;
+      if (!acc[status]) acc[status] = [];
+      acc[status].push(ticket);
+      return acc;
+    }, {} as Record<string, Ticket[]>);
+  }, [tickets]);
+
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading tickets...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error loading tickets</div>;
-
-  const ticketsByStatus = (tickets || []).reduce((acc, ticket) => {
-    const status = ticket.status_id;
-    if (!acc[status]) acc[status] = [];
-    acc[status].push(ticket);
-    return acc;
-  }, {} as Record<string, Ticket[]>);
 
   // Density styles for cards
   const paddingClass = {
