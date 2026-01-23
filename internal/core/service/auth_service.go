@@ -33,9 +33,8 @@ func NewAuthService(repo port.UserRepository, orgRepo port.OrganizationRepositor
 }
 
 // GetLoginURL delegates to the OIDC provider to get the authentication URL.
-func (s *AuthService) GetLoginURL() string {
-	// For this MVP phase, we use a static state string.
-	return s.oidc.AuthCodeURL("state-random-string")
+func (s *AuthService) GetLoginURL(state string) string {
+	return s.oidc.AuthCodeURL(state)
 }
 
 // LoginFromProvider authenticates a user using an authorization code.
