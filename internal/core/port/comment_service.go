@@ -9,9 +9,10 @@ import (
 
 // CreateCommentCmd defines the input for creating a comment.
 type CreateCommentCmd struct {
-	TicketID uuid.UUID
-	UserID   uuid.UUID
-	Body     string
+	TicketID  uuid.UUID
+	UserID    uuid.UUID
+	Body      string
+	Sensitive bool
 }
 
 // CommentService defines the interface for comment business logic.

@@ -33,6 +33,7 @@ type CreateTicketRequest struct {
 	Priority       string    `json:"priority_id"`
 	OrganizationID uuid.UUID `json:"organization_id"`
 	Location       string    `json:"location"`
+	Sensitive      bool      `json:"sensitive"`
 }
 
 type CreatePublicTicketRequest struct {
@@ -51,6 +52,7 @@ type UpdateTicketRequest struct {
 	Status      *string    `json:"status_id"`
 	AssigneeID  *uuid.UUID `json:"assignee_id"`
 	Location    *string    `json:"location"`
+	Sensitive   *bool      `json:"sensitive"`
 }
 
 func NewTicketHandler(service port.TicketService, orgRepo port.OrganizationRepository, userRepo port.UserRepository, logger *slog.Logger) *TicketHandler {
@@ -373,6 +375,7 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		Description:    req.Description,
 		Location:       req.Location,
 		PriorityID:     req.Priority,
+		Sensitive:      req.Sensitive,
 	}
 
 	ticket, err := h.service.CreateTicket(r.Context(), cmd)
@@ -520,6 +523,7 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 		Title:          req.Title,
 		Description:    req.Description,
 		Location:       req.Location,
+		Sensitive:      req.Sensitive,
 	}
 
 	updatedTicket, err := h.service.UpdateTicket(r.Context(), id, cmd)

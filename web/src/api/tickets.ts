@@ -16,7 +16,7 @@ export async function createTicket(data: CreateTicketRequest | FormData): Promis
   return response.data;
 }
 
-export async function updateTicket(id: string, data: { status_id?: string; priority_id?: string }): Promise<Ticket> {
+export async function updateTicket(id: string, data: { status_id?: string; priority_id?: string; sensitive?: boolean }): Promise<Ticket> {
   const response = await client.patch(`/tickets/${id}`, data);
   return response.data;
 }

@@ -16,6 +16,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
     title: '',
     description: '',
     priority_id: 'medium',
+    sensitive: false,
   });
 
   const mutation = useMutation({
@@ -23,7 +24,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       onClose();
-      setNewTicket({ title: '', description: '', priority_id: 'medium' });
+      setNewTicket({ title: '', description: '', priority_id: 'medium', sensitive: false });
       toast.success("Ticket created!");
     },
   });
@@ -106,6 +107,19 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                               <option value="high">High</option>
                               <option value="critical">Critical</option>
                             </select>
+                          </div>
+                          <div className="flex items-center">
+                            <input
+                              id="sensitive"
+                              name="sensitive"
+                              type="checkbox"
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                              checked={newTicket.sensitive}
+                              onChange={(e) => setNewTicket({ ...newTicket, sensitive: e.target.checked })}
+                            />
+                            <label htmlFor="sensitive" className="ml-2 block text-sm text-gray-900">
+                              Mark as sensitive
+                            </label>
                           </div>
                         </div>
                       </div>

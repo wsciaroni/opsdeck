@@ -3,6 +3,7 @@ import { client } from './client';
 export interface Comment {
   id: string;
   body: string;
+  sensitive: boolean;
   created_at: string;
   user: {
     id: string;
@@ -13,6 +14,7 @@ export interface Comment {
 
 export interface CreateCommentRequest {
   body: string;
+  sensitive?: boolean;
 }
 
 export async function getComments(ticketID: string): Promise<Comment[]> {

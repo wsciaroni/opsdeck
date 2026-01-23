@@ -27,6 +27,7 @@ export interface Ticket {
   priority_id: string;
   reporter_id: string;
   assignee_user_id: string | null;
+  sensitive: boolean;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -42,6 +43,7 @@ export interface CreateTicketRequest {
   priority_id: string;
   organization_id: string;
   location?: string;
+  sensitive?: boolean;
 }
 
 export interface Member {

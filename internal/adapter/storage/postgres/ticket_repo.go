@@ -27,9 +27,9 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) er
 	query := `
 		INSERT INTO tickets (
 			organization_id, reporter_id, assignee_user_id, status_id, priority_id,
-			title, description, location, completed_at
+			title, description, location, completed_at, sensitive
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -43,6 +43,7 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) er
 		ticket.Description,
 		ticket.Location,
 		ticket.CompletedAt,
+		ticket.Sensitive,
 	).Scan(&ticket.ID, &ticket.CreatedAt, &ticket.UpdatedAt)
 
 	if err != nil {
@@ -55,7 +56,7 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *domain.Ticket) er
 func (r *TicketRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Ticket, error) {
 	query := `
 		SELECT id, organization_id, reporter_id, assignee_user_id, status_id, priority_id,
-		       title, description, location, created_at, updated_at, completed_at
+		       title, description, location, created_at, updated_at, completed_at, sensitive
 		FROM tickets
 		WHERE id = $1
 	`
@@ -74,6 +75,7 @@ func (r *TicketRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.T
 		&t.CreatedAt,
 		&t.UpdatedAt,
 		&t.CompletedAt,
+		&t.Sensitive,
 	)
 
 	if err != nil {
@@ -94,7 +96,7 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 
 	query := fmt.Sprintf(`
 		SELECT id, organization_id, reporter_id, assignee_user_id, status_id, priority_id,
-		       title, %s, location, created_at, updated_at, completed_at
+		       title, %s, location, created_at, updated_at, completed_at, sensitive
 		FROM tickets
 		WHERE 1=1
 	`, descriptionField)
@@ -152,6 +154,7 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 			&t.CreatedAt,
 			&t.UpdatedAt,
 			&t.CompletedAt,
+			&t.Sensitive,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan ticket: %w", err)
@@ -171,8 +174,8 @@ func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) er
 		UPDATE tickets
 		SET status_id = $1, priority_id = $2, assignee_user_id = $3,
 		    title = $4, description = $5, location = $6,
-		    updated_at = $7, completed_at = $8
-		WHERE id = $9
+		    updated_at = $7, completed_at = $8, sensitive = $9
+		WHERE id = $10
 	`
 
 	tag, err := r.db.Exec(ctx, query,
@@ -184,6 +187,7 @@ func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) er
 		ticket.Location,
 		ticket.UpdatedAt,
 		ticket.CompletedAt,
+		ticket.Sensitive,
 		ticket.ID,
 	)
 
