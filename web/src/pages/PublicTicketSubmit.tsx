@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createPublicTicket } from '../api/tickets';
-import { AlertCircle, CheckCircle, Paperclip } from 'lucide-react';
+import { AlertCircle, CheckCircle, Paperclip, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -231,19 +231,33 @@ export default function PublicTicketSubmit() {
                     <span>Upload files</span>
                     <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
                  </label>
-                 {files && files.length > 0 && (
-                     <span className="ml-3 text-sm text-gray-500">{files.length} file(s) selected</span>
-                 )}
               </div>
+              {files && files.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {Array.from(files).map((file, index) => (
+                    <li key={index} className="text-sm text-gray-500 flex items-center">
+                      <Paperclip className="h-3 w-3 mr-2 text-gray-400" />
+                      {file.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div>
               <button
                 type="submit"
                 disabled={mutation.isPending}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {mutation.isPending ? 'Submitting...' : 'Submit Ticket'}
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Ticket'
+                )}
               </button>
             </div>
           </form>
