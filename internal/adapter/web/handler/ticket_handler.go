@@ -176,7 +176,7 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if !org.ShareLinkEnabled {
+	if org == nil || !org.ShareLinkEnabled {
 		http.Error(w, "Share link disabled", http.StatusForbidden)
 		return
 	}

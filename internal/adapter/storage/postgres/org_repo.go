@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
 )
@@ -60,6 +62,9 @@ func (r *OrganizationRepository) GetByShareToken(ctx context.Context, token stri
 		&org.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get organization by token: %w", err)
 	}
 	return &org, nil
@@ -84,6 +89,9 @@ func (r *OrganizationRepository) GetByPublicViewToken(ctx context.Context, token
 		&org.UpdatedAt,
 	)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get organization by public view token: %w", err)
 	}
 	return &org, nil
