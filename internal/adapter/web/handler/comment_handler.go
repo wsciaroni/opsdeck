@@ -165,7 +165,7 @@ func (h *CommentHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, err := h.commentService.ListComments(r.Context(), ticketID)
+	comments, err := h.commentService.ListComments(r.Context(), ticketID, true)
 	if err != nil {
 		h.logger.Error("Failed to list comments", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

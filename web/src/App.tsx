@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import TicketDetail from './pages/TicketDetail';
 import TeamSettings from './pages/TeamSettings';
 import PublicTicketSubmit from './pages/PublicTicketSubmit';
+import PublicDashboard from './pages/PublicDashboard';
+import PublicTicketDetail from './pages/PublicTicketDetail';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Layout from './components/Layout';
@@ -36,6 +38,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/submit-ticket" element={<PublicTicketSubmit />} />
+          <Route path="/public/:token" element={<PublicDashboard />} />
+          <Route path="/public/:token/tickets/:ticketId" element={<PublicTicketDetail />} />
           <Route element={<RequireAuth><Layout><Outlet /></Layout></RequireAuth>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
