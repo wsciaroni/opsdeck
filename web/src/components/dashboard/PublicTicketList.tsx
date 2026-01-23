@@ -2,8 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { PublicTicket } from '../../api/public';
 import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
-import { Inbox, Plus } from 'lucide-react';
-import clsx from 'clsx';
+import { Inbox } from 'lucide-react';
 
 interface PublicTicketListProps {
   tickets: PublicTicket[] | undefined;
