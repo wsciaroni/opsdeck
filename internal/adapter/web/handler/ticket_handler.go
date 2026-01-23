@@ -470,9 +470,46 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(tickets) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode([]TicketDetailResponse{}); err != nil {
+			h.logger.Error("failed to encode response", "error", err)
+		}
+		return
+	}
+
+	members, err := h.orgRepo.ListMembers(r.Context(), orgID)
+	if err != nil {
+		h.logger.Error("failed to list organization members", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	memberMap := make(map[uuid.UUID]string)
+	for _, m := range members {
+		memberMap[m.UserID] = m.Name
+	}
+
+	response := make([]TicketDetailResponse, len(tickets))
+	for i := range tickets {
+		t := &tickets[i]
+		assigneeName := ""
+		if t.AssigneeUserID != nil {
+			assigneeName = memberMap[*t.AssigneeUserID]
+		}
+		reporterName := memberMap[t.ReporterID]
+
+		response[i] = TicketDetailResponse{
+			Ticket:       t,
+			AssigneeName: assigneeName,
+			ReporterName: reporterName,
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(tickets); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 	}
 }

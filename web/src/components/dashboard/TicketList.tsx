@@ -35,7 +35,7 @@ function MobileTicketCard({ ticket, onClick }: { readonly ticket: Ticket; readon
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
         </div>
         <div className="flex items-center text-xs text-gray-500">
-          <span>{ticket.assignee_user_id || 'Unassigned'}</span>
+          <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
         </div>
       </button>
     </li>
@@ -135,7 +135,7 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
                         <PriorityLabel priority={ticket.priority_id} />
                       </td>
                       <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
-                        {ticket.assignee_user_id || 'Unassigned'}
+                        {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
                       </td>
                       <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
                         {new Date(ticket.created_at).toLocaleDateString()}

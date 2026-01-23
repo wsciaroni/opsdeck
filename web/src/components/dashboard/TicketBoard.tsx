@@ -87,7 +87,7 @@ export default function TicketBoard({ tickets, isLoading, error, density }: Tick
                   {ticket.title}
                 </h4>
                 <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
-                    <span>{ticket.assignee_user_id || 'Unassigned'}</span>
+                    <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
                 </div>
               </div>
             ))}
