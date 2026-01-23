@@ -11,3 +11,8 @@
 **Learning:** Go's `database/sql` and `pgx` encourage parameterized queries, but manual query building with `fmt.Sprintf` can be risky if not done carefully. In this case, it is done correctly for dynamic filtering.
 
 **Prevention:** To prevent CSRF, we should implement the "Double Submit Cookie" pattern or use a Synchronizer Token Pattern. Since the frontend is React, we can have the backend set a `X-CSRF-Token` cookie (httpOnly=false) and require the frontend to read it and send it back in a header `X-CSRF-Token`. Or, more simply for this exercise, we can add basic Security Headers as a quick win if CSRF is too complex for "one small fix".
+
+## 2026-01-22 - OAuth CSRF Protection via State Parameter
+**Vulnerability:** The OAuth flow used a hardcoded state parameter ("state-random-string"), making it vulnerable to CSRF/Account Takeover attacks where an attacker could force a user to log in to the attacker's account.
+**Learning:** OAuth `state` parameter must be a unique, unguessable, cryptographically secure random string bound to the user's session (e.g., via a cookie) and verified in the callback.
+**Prevention:** Implemented a `generateState` helper using `crypto/rand` and an `oauth_state` cookie (HTTPOnly, Secure, Lax) to store and verify the state during the OAuth dance.

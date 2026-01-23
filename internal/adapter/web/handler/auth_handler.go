@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -29,7 +31,29 @@ func NewAuthHandler(service port.AuthService, orgRepo port.OrganizationRepositor
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	url := h.service.GetLoginURL()
+	state, err := generateState()
+	if err != nil {
+		h.logger.Error("failed to generate state", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	secure := true
+	if os.Getenv("APP_ENV") == "development" {
+		secure = false
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(15 * time.Minute),
+	})
+
+	url := h.service.GetLoginURL(state)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
@@ -37,10 +61,35 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 
-	if state != "state-random-string" {
+	cookie, err := r.Cookie("oauth_state")
+	if err != nil || cookie.Value == "" {
+		h.logger.Warn("missing or empty oauth_state cookie")
 		http.Error(w, "Invalid state", http.StatusBadRequest)
 		return
 	}
+
+	if state != cookie.Value {
+		h.logger.Warn("invalid oauth state", "expected", cookie.Value, "got", state)
+		http.Error(w, "Invalid state", http.StatusBadRequest)
+		return
+	}
+
+	secure := true
+	if os.Getenv("APP_ENV") == "development" {
+		secure = false
+	}
+
+	// Delete state cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+		Expires:  time.Now().Add(-1 * time.Hour),
+	})
 
 	user, err := h.service.LoginFromProvider(r.Context(), code)
 	if err != nil {
@@ -54,11 +103,6 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("failed to create session", "error", err)
 		http.Error(w, "Failed to create session", http.StatusInternalServerError)
 		return
-	}
-
-	secure := true
-	if os.Getenv("APP_ENV") == "development" {
-		secure = false
 	}
 
 	signedSessionID := middleware.SignSessionID(sessionID, h.secret)
@@ -125,4 +169,12 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		h.logger.Error("failed to write response", "error", err)
 	}
+}
+
+func generateState() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }

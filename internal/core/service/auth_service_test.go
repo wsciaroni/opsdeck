@@ -130,10 +130,11 @@ func TestGetLoginURL(t *testing.T) {
 	logger := slog.Default()
 	service := NewAuthService(mockRepo, mockOrgRepo, mockOIDC, logger)
 
-	expectedURL := "https://accounts.google.com/o/oauth2/auth?state=state-random-string"
-	mockOIDC.On("AuthCodeURL", "state-random-string").Return(expectedURL)
+	state := "state-random-string"
+	expectedURL := "https://accounts.google.com/o/oauth2/auth?state=" + state
+	mockOIDC.On("AuthCodeURL", state).Return(expectedURL)
 
-	url := service.GetLoginURL()
+	url := service.GetLoginURL(state)
 	assert.Equal(t, expectedURL, url)
 	mockOIDC.AssertExpectations(t)
 }
