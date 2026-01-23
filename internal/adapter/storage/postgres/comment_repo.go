@@ -38,15 +38,21 @@ func (r *CommentRepository) Create(ctx context.Context, comment *domain.Comment)
 	return nil
 }
 
-func (r *CommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error) {
+func (r *CommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID, includeSensitive bool) ([]domain.Comment, error) {
 	query := `
 		SELECT id, ticket_id, user_id, body, sensitive, created_at
 		FROM comments
 		WHERE ticket_id = $1
-		ORDER BY created_at ASC
 	`
 
-	rows, err := r.db.Query(ctx, query, ticketID)
+	args := []interface{}{ticketID}
+	if !includeSensitive {
+		query += " AND sensitive = false"
+	}
+
+	query += " ORDER BY created_at ASC"
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list comments: %w", err)
 	}

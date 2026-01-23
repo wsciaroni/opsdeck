@@ -10,5 +10,5 @@ import (
 // CommentRepository defines the interface for interacting with comment data.
 type CommentRepository interface {
 	Create(ctx context.Context, comment *domain.Comment) error
-	ListByTicket(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error)
+	ListByTicket(ctx context.Context, ticketID uuid.UUID, includeSensitive bool) ([]domain.Comment, error)
 }

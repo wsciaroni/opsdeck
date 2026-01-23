@@ -18,5 +18,5 @@ type CreateCommentCmd struct {
 // CommentService defines the interface for comment business logic.
 type CommentService interface {
 	CreateComment(ctx context.Context, cmd CreateCommentCmd) (*domain.Comment, error)
-	ListComments(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error)
+	ListComments(ctx context.Context, ticketID uuid.UUID, includeSensitive bool) ([]domain.Comment, error)
 }

@@ -20,8 +20,8 @@ func (m *MockCommentRepository) Create(ctx context.Context, comment *domain.Comm
 	return args.Error(0)
 }
 
-func (m *MockCommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error) {
-	args := m.Called(ctx, ticketID)
+func (m *MockCommentRepository) ListByTicket(ctx context.Context, ticketID uuid.UUID, includeSensitive bool) ([]domain.Comment, error) {
+	args := m.Called(ctx, ticketID, includeSensitive)
 	return args.Get(0).([]domain.Comment), args.Error(1)
 }
 

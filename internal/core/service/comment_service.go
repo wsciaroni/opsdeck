@@ -46,6 +46,6 @@ func (s *CommentService) CreateComment(ctx context.Context, cmd port.CreateComme
 }
 
 // ListComments lists comments for a ticket.
-func (s *CommentService) ListComments(ctx context.Context, ticketID uuid.UUID) ([]domain.Comment, error) {
-	return s.repo.ListByTicket(ctx, ticketID)
+func (s *CommentService) ListComments(ctx context.Context, ticketID uuid.UUID, includeSensitive bool) ([]domain.Comment, error) {
+	return s.repo.ListByTicket(ctx, ticketID, includeSensitive)
 }

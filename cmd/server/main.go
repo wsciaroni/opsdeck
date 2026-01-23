@@ -115,11 +115,14 @@ func main() {
 	// Init Org
 	orgHandler := handler.NewOrgHandler(orgRepo, repo, logger)
 
+	// Init Public View
+	publicViewHandler := handler.NewPublicViewHandler(orgRepo, ticketService, commentService, repo, logger)
+
 	// Init Middleware
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger, sessionSecret)
 
 	// Setup Router
-	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, authMiddleware)
+	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, publicViewHandler, authMiddleware)
 
 	// Start Server
 	srv := &http.Server{

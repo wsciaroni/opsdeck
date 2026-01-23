@@ -18,6 +18,7 @@ func NewRouter(
 	ticketHandler *handler.TicketHandler,
 	orgHandler *handler.OrgHandler,
 	commentHandler *handler.CommentHandler,
+	publicViewHandler *handler.PublicViewHandler,
 	authMW *appMiddleware.AuthMiddleware,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -36,6 +37,13 @@ func NewRouter(
 	r.Route("/api", func(r chi.Router) {
 		r.Method(http.MethodGet, "/health", NewHealthHandler(db))
 		r.Post("/public/tickets", ticketHandler.CreatePublicTicket)
+
+		r.Route("/public/view/{token}", func(r chi.Router) {
+			r.Get("/organization", publicViewHandler.GetOrganization)
+			r.Get("/tickets", publicViewHandler.ListTickets)
+			r.Get("/tickets/{ticketID}", publicViewHandler.GetTicket)
+			r.Get("/tickets/{ticketID}/comments", publicViewHandler.ListComments)
+		})
 
 		// Protected Routes
 		r.Group(func(r chi.Router) {
