@@ -29,9 +29,6 @@ function MobileTicketCard({ ticket, onClick }: { readonly ticket: PublicTicket; 
         <div className="mb-2">
           <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
         </div>
-        <div className="flex items-center text-xs text-gray-500">
-          <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
-        </div>
       </button>
     </li>
   );
@@ -91,7 +88,6 @@ export default function PublicTicketList({ tickets, isLoading, error }: PublicTi
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Title</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Priority</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assignee</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
                   </tr>
                 </thead>
@@ -110,9 +106,6 @@ export default function PublicTicketList({ tickets, isLoading, error }: PublicTi
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <PriorityLabel priority={ticket.priority_id} />
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {new Date(ticket.created_at).toLocaleDateString()}

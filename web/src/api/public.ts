@@ -8,10 +8,7 @@ export interface PublicOrganization {
   slug: string;
 }
 
-export interface PublicTicket extends Ticket {
-  reporter_name?: string;
-  assignee_name?: string;
-}
+export type PublicTicket = Ticket;
 
 export async function getPublicOrganization(token: string): Promise<PublicOrganization> {
   const response = await client.get(`/public/view/${token}/organization`);
