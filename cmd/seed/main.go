@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math/rand/v2"
+	"math/rand"
 	"os"
 	"time"
 
@@ -128,9 +128,9 @@ func run() error {
 
 	log.Printf("Generating 20 tickets for Organization %s...", orgID)
 	for i := 1; i <= 20; i++ {
-		status := statuses[rand.IntN(len(statuses))]
-		priority := priorities[rand.IntN(len(priorities))]
-		location := locations[rand.IntN(len(locations))]
+		status := statuses[rand.Intn(len(statuses))]
+		priority := priorities[rand.Intn(len(priorities))]
+		location := locations[rand.Intn(len(locations))]
 
 		var assigneeID *uuid.UUID
 		if rand.Float64() < 0.5 {
