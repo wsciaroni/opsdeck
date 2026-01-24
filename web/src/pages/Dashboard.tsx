@@ -20,6 +20,20 @@ export default function Dashboard() {
     return (localStorage.getItem('dashboard_density') as Density) || 'standard';
   });
 
+  // Filter states
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [priority, setPriority] = useState('');
+  const [status, setStatus] = useState('');
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // Persist preferences
   useEffect(() => {
     localStorage.setItem('dashboard_view_mode', viewMode);
@@ -30,8 +44,8 @@ export default function Dashboard() {
   }, [density]);
 
   const { data: tickets, isLoading, error } = useQuery({
-    queryKey: ['tickets', currentOrg?.id],
-    queryFn: () => getTickets(currentOrg!.id),
+    queryKey: ['tickets', currentOrg?.id, debouncedSearch, priority, status],
+    queryFn: () => getTickets(currentOrg!.id, { search: debouncedSearch, priority, status }),
     enabled: !!currentOrg,
   });
 
@@ -52,6 +66,12 @@ export default function Dashboard() {
         setViewMode={setViewMode}
         density={density}
         setDensity={setDensity}
+        search={search}
+        setSearch={setSearch}
+        priority={priority}
+        setPriority={setPriority}
+        status={status}
+        setStatus={setStatus}
       />
 
       <div className="flex-1 overflow-hidden">

@@ -12,10 +12,12 @@ type TicketFilter struct {
 	OrganizationID     *uuid.UUID
 	OrganizationIDs    []uuid.UUID
 	StatusID           *string
+	PriorityID         *string
 	AssigneeID         *uuid.UUID
 	ReporterID         *uuid.UUID
 	ExcludeDescription bool
 	Sensitive          *bool
+	Keyword            *string
 }
 
 // TicketRepository defines the interface for interacting with ticket data.
