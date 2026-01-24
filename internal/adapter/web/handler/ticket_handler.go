@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -163,6 +164,28 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
+	}
+
+	// 0. Validate Input
+	if len(req.Title) == 0 || len(req.Title) > 200 {
+		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
+		return
+	}
+	if len(req.Description) > 5000 {
+		http.Error(w, "Description too long", http.StatusBadRequest)
+		return
+	}
+	if len(req.Name) > 100 {
+		http.Error(w, "Name too long", http.StatusBadRequest)
+		return
+	}
+	if len(req.Email) > 255 {
+		http.Error(w, "Email too long", http.StatusBadRequest)
+		return
+	}
+	if _, err := mail.ParseAddress(req.Email); err != nil {
+		http.Error(w, "Invalid email format", http.StatusBadRequest)
+		return
 	}
 
 	// 1. Validate Token & Org
@@ -378,6 +401,15 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 
 	if !isMember {
 		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if len(req.Title) == 0 || len(req.Title) > 200 {
+		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
+		return
+	}
+	if len(req.Description) > 5000 {
+		http.Error(w, "Description too long", http.StatusBadRequest)
 		return
 	}
 

@@ -398,7 +398,14 @@ func TestCreatePublicTicket(t *testing.T) {
 		org := &domain.Organization{
 			ShareLinkEnabled: false,
 		}
-		reqBody := map[string]string{"token": token}
+		reqBody := map[string]string{
+			"token":       token,
+			"title":       "Valid Title",
+			"description": "Valid Description",
+			"name":        "Valid Name",
+			"email":       "valid@example.com",
+			"priority_id": "low",
+		}
 		bodyBytes, _ := json.Marshal(reqBody)
 
 		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
@@ -409,6 +416,87 @@ func TestCreatePublicTicket(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("BadRequest - Invalid Input", func(t *testing.T) {
+		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		reqBody := map[string]string{
+			"token":       "token",
+			"title":       "", // Empty title
+			"description": "Desc",
+			"name":        "Tester",
+			"email":       "test@example.com",
+			"priority_id": "low",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Title")
+	})
+
+	t.Run("BadRequest - Invalid Email", func(t *testing.T) {
+		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		reqBody := map[string]string{
+			"token":       "token",
+			"title":       "Title",
+			"description": "Desc",
+			"name":        "Tester",
+			"email":       "invalid-email",
+			"priority_id": "low",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid email")
+	})
+}
+
+func TestCreateTicket(t *testing.T) {
+	t.Run("BadRequest - Invalid Input", func(t *testing.T) {
+		mockOrgRepo := new(MockOrgRepo)
+		h := handler.NewTicketHandler(nil, mockOrgRepo, nil, nil)
+		r := chi.NewRouter()
+		r.Post("/tickets", h.CreateTicket)
+
+		user := &domain.User{ID: uuid.New()}
+		orgID := uuid.New()
+
+		reqBody := map[string]interface{}{
+			"organization_id": orgID,
+			"title":           "",
+			"description":     "Desc",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest("POST", "/tickets", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		memberships := []domain.UserMembership{
+			{Organization: domain.Organization{ID: orgID}},
+		}
+		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
