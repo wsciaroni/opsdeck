@@ -486,6 +486,14 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		filter.StatusID = &status
 	}
 
+	if priority := r.URL.Query().Get("priority"); priority != "" {
+		filter.PriorityID = &priority
+	}
+
+	if search := r.URL.Query().Get("search"); search != "" {
+		filter.Keyword = &search
+	}
+
 	if assigneeIDStr := r.URL.Query().Get("assignee_id"); assigneeIDStr != "" {
 		assigneeID, err := uuid.Parse(assigneeIDStr)
 		if err != nil {
