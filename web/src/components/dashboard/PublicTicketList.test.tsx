@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicTicketList from './PublicTicketList';
 import { BrowserRouter } from 'react-router-dom';
+import type { PublicTicket } from '../../api/public';
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -12,7 +13,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const mockTickets: any[] = [
+const mockTickets: PublicTicket[] = [
   {
     id: '1',
     organization_id: 'org1',
