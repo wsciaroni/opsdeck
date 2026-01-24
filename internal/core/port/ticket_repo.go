@@ -16,6 +16,7 @@ type TicketFilter struct {
 	ReporterID         *uuid.UUID
 	ExcludeDescription bool
 	Sensitive          *bool
+	Keyword            *string
 }
 
 // TicketRepository defines the interface for interacting with ticket data.

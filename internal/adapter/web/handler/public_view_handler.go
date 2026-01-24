@@ -95,6 +95,10 @@ func (h *PublicViewHandler) ListTickets(w http.ResponseWriter, r *http.Request) 
 		Sensitive:      &sensitive,
 	}
 
+	if search := r.URL.Query().Get("search"); search != "" {
+		filter.Keyword = &search
+	}
+
 	tickets, err := h.ticketService.ListTickets(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("Failed to list tickets", "error", err)

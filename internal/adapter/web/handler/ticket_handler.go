@@ -463,6 +463,10 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		filter.AssigneeID = &assigneeID
 	}
 
+	if search := r.URL.Query().Get("search"); search != "" {
+		filter.Keyword = &search
+	}
+
 	tickets, err := h.service.ListTickets(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("failed to list tickets", "error", err)

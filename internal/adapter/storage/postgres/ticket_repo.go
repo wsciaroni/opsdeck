@@ -134,6 +134,13 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 	if filter.Sensitive != nil {
 		query += fmt.Sprintf(" AND sensitive = $%d", argIdx)
 		args = append(args, *filter.Sensitive)
+		argIdx++
+	}
+
+	if filter.Keyword != nil && *filter.Keyword != "" {
+		query += fmt.Sprintf(" AND (title ILIKE $%d OR description ILIKE $%d)", argIdx, argIdx)
+		args = append(args, "%"+*filter.Keyword+"%")
+		argIdx++
 	}
 
 	query += " ORDER BY created_at DESC"

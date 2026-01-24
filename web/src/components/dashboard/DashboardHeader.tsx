@@ -10,6 +10,8 @@ interface DashboardHeaderProps {
   setViewMode: (mode: 'list' | 'board') => void;
   density: Density;
   setDensity: (density: Density) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }
 
 export default function DashboardHeader({
@@ -19,6 +21,8 @@ export default function DashboardHeader({
   setViewMode,
   density,
   setDensity,
+  searchQuery,
+  onSearchChange,
 }: DashboardHeaderProps) {
   return (
     <div className="mb-6">
@@ -54,7 +58,8 @@ export default function DashboardHeader({
                     id="search"
                     className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
                     placeholder="Search tickets..."
-                    disabled // Placeholder
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
                 />
             </div>
             <button

@@ -10,6 +10,7 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 export default function Dashboard() {
   const { currentOrg } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // State for view preferences with local storage persistence
   const [viewMode, setViewMode] = useState<'list' | 'board'>(() => {
@@ -30,8 +31,8 @@ export default function Dashboard() {
   }, [density]);
 
   const { data: tickets, isLoading, error } = useQuery({
-    queryKey: ['tickets', currentOrg?.id],
-    queryFn: () => getTickets(currentOrg!.id),
+    queryKey: ['tickets', currentOrg?.id, searchQuery],
+    queryFn: () => getTickets(currentOrg!.id, searchQuery),
     enabled: !!currentOrg,
   });
 
@@ -52,6 +53,8 @@ export default function Dashboard() {
         setViewMode={setViewMode}
         density={density}
         setDensity={setDensity}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       <div className="flex-1 overflow-hidden">

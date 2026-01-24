@@ -1,8 +1,12 @@
 import { client } from './client';
 import type { Ticket, CreateTicketRequest, TicketDetail } from '../types';
 
-export async function getTickets(orgID: string): Promise<Ticket[]> {
-  const response = await client.get(`/tickets?organization_id=${orgID}`);
+export async function getTickets(orgID: string, search?: string): Promise<Ticket[]> {
+  const params = new URLSearchParams({ organization_id: orgID });
+  if (search) {
+    params.append('search', search);
+  }
+  const response = await client.get(`/tickets?${params.toString()}`);
   return response.data;
 }
 

@@ -18,8 +18,13 @@ export async function getPublicOrganization(token: string): Promise<PublicOrgani
   return response.data;
 }
 
-export async function getPublicTickets(token: string): Promise<PublicTicket[]> {
-  const response = await client.get(`/public/view/${token}/tickets`);
+export async function getPublicTickets(token: string, search?: string): Promise<PublicTicket[]> {
+  const params = new URLSearchParams();
+  if (search) {
+    params.append('search', search);
+  }
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+  const response = await client.get(`/public/view/${token}/tickets${queryString}`);
   return response.data;
 }
 
