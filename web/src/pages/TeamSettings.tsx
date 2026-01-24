@@ -152,7 +152,7 @@ export default function TeamSettings() {
   const [copiedPublic, setCopiedPublic] = useState(false);
   const copyPublicLink = () => {
     if (publicViewSettings?.public_view_token) {
-      const url = `${window.location.origin}/public/board?token=${publicViewSettings.public_view_token}`;
+      const url = `${window.location.origin}/public/${publicViewSettings.public_view_token}`;
       navigator.clipboard.writeText(url);
       setCopiedPublic(true);
       setTimeout(() => setCopiedPublic(false), 2000);
@@ -281,7 +281,7 @@ export default function TeamSettings() {
                             type="text"
                             readOnly
                             className="block w-full rounded-none rounded-l-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-gray-50 text-gray-500"
-                            value={publicViewSettings?.public_view_token ? `${window.location.origin}/public/board?token=${publicViewSettings.public_view_token}` : ''}
+                            value={publicViewSettings?.public_view_token ? `${window.location.origin}/public/${publicViewSettings.public_view_token}` : ''}
                         />
                     </div>
                     <button
