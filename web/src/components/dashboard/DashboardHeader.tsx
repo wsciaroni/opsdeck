@@ -1,4 +1,4 @@
-import { Plus, List, Layout, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { Plus, List, Layout, Search } from 'lucide-react';
 import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
@@ -10,6 +10,12 @@ interface DashboardHeaderProps {
   setViewMode: (mode: 'list' | 'board') => void;
   density: Density;
   setDensity: (density: Density) => void;
+  search: string;
+  setSearch: (search: string) => void;
+  priority: string;
+  setPriority: (priority: string) => void;
+  status: string;
+  setStatus: (status: string) => void;
 }
 
 export default function DashboardHeader({
@@ -19,6 +25,12 @@ export default function DashboardHeader({
   setViewMode,
   density,
   setDensity,
+  search,
+  setSearch,
+  priority,
+  setPriority,
+  status,
+  setStatus,
 }: DashboardHeaderProps) {
   return (
     <div className="mb-6">
@@ -42,8 +54,8 @@ export default function DashboardHeader({
       </div>
 
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        {/* Left controls: Search & Filter Placeholders */}
-        <div className="flex space-x-2 w-full sm:w-auto">
+        {/* Left controls: Search & Filters */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
             <div className="relative rounded-md shadow-sm w-full sm:w-64">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
@@ -54,27 +66,35 @@ export default function DashboardHeader({
                     id="search"
                     className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
                     placeholder="Search tickets..."
-                    disabled // Placeholder
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
-            <button
-                type="button"
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none disabled:opacity-50"
-                disabled // Placeholder
-                title="Filter (Coming soon)"
+
+            <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="block w-full sm:w-auto rounded-md border-gray-300 py-2 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"
             >
-                <Filter className="h-4 w-4 mr-2 text-gray-500" />
-                Filter
-            </button>
-             <button
-                type="button"
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none disabled:opacity-50"
-                disabled // Placeholder
-                title="Sort (Coming soon)"
+                <option value="">All Statuses</option>
+                <option value="new">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="on_hold">On Hold</option>
+                <option value="done">Done</option>
+                <option value="canceled">Canceled</option>
+            </select>
+
+            <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                className="block w-full sm:w-auto rounded-md border-gray-300 py-2 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"
             >
-                <SlidersHorizontal className="h-4 w-4 mr-2 text-gray-500" />
-                Sort
-            </button>
+                <option value="">All Priorities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
         </div>
 
         {/* Right controls: View Mode & Density */}
