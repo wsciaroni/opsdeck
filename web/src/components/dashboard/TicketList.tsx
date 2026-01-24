@@ -123,7 +123,15 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
                     <tr
                       key={ticket.id}
                       onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="cursor-pointer hover:bg-gray-50"
+                      className="cursor-pointer hover:bg-gray-50 focus:outline-none focus:bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/tickets/${ticket.id}`);
+                        }
+                      }}
+                      aria-label={`View ticket: ${ticket.title}`}
                     >
                       <td className={clsx("whitespace-nowrap px-3 text-sm text-gray-500", paddingClass)}>
                         <StatusBadge status={ticket.status_id} />

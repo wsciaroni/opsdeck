@@ -96,7 +96,15 @@ export default function PublicTicketList({ tickets, isLoading, error }: PublicTi
                     <tr
                       key={ticket.id}
                       onClick={() => navigate(`/public/${token}/tickets/${ticket.id}`)}
-                      className="cursor-pointer hover:bg-gray-50"
+                      className="cursor-pointer hover:bg-gray-50 focus:outline-none focus:bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/public/${token}/tickets/${ticket.id}`);
+                        }
+                      }}
+                      aria-label={`View ticket: ${ticket.title}`}
                     >
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         <StatusBadge status={ticket.status_id} />
