@@ -102,48 +102,14 @@ func (h *PublicViewHandler) ListTickets(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Hydrate with Assignee names? Maybe overkill for list, but good for completeness.
-	// For now, let's just return tickets as is.
-    // Wait, domain.Ticket doesn't have assignee name, just ID.
-    // If I want to show names, I need to fetch users.
-
-    // Collect user IDs (AssigneeID)
-    userIDs := make(map[uuid.UUID]bool)
-    for _, t := range tickets {
-        if t.AssigneeUserID != nil {
-            userIDs[*t.AssigneeUserID] = true
-        }
-    }
-
-    users := make(map[uuid.UUID]*domain.User)
-    for uid := range userIDs {
-        u, err := h.userRepo.GetByID(r.Context(), uid)
-        if err != nil {
-             h.logger.Error("Failed to fetch user", "userID", uid, "error", err)
-             continue
-        }
-        if u != nil {
-            users[uid] = u
-        }
-    }
-
-    // Enhance response
-    type TicketResponse struct {
-        domain.Ticket
-        AssigneeName string `json:"assignee_name,omitempty"`
-    }
-
-    respList := make([]TicketResponse, 0, len(tickets))
-    for _, t := range tickets {
-        tr := TicketResponse{Ticket: t}
-        if t.AssigneeUserID != nil {
-            if u, ok := users[*t.AssigneeUserID]; ok {
-                tr.AssigneeName = u.Name
-            }
-        }
-        respList = append(respList, tr)
-    }
-
+	// Sanitize tickets (hide sensitive details like user IDs)
+	respList := make([]domain.Ticket, 0, len(tickets))
+	for _, t := range tickets {
+		ticketCopy := t
+		ticketCopy.ReporterID = uuid.Nil
+		ticketCopy.AssigneeUserID = nil
+		respList = append(respList, ticketCopy)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(respList); err != nil {
@@ -188,33 +154,13 @@ func (h *PublicViewHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    // Hydrate Reporter and Assignee names
-    var reporterName, assigneeName string
-
-    reporter, err := h.userRepo.GetByID(r.Context(), ticket.ReporterID)
-    if err == nil && reporter != nil {
-        reporterName = reporter.Name
-    }
-
-    if ticket.AssigneeUserID != nil {
-        assignee, err := h.userRepo.GetByID(r.Context(), *ticket.AssigneeUserID)
-        if err == nil && assignee != nil {
-            assigneeName = assignee.Name
-        }
-    }
-
-    resp := struct {
-        domain.Ticket
-        ReporterName string `json:"reporter_name"`
-        AssigneeName string `json:"assignee_name,omitempty"`
-    }{
-        Ticket: *ticket,
-        ReporterName: reporterName,
-        AssigneeName: assigneeName,
-    }
+	// Sanitize ticket (hide sensitive details like user IDs)
+	ticketCopy := *ticket
+	ticketCopy.ReporterID = uuid.Nil
+	ticketCopy.AssigneeUserID = nil
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
+	if err := json.NewEncoder(w).Encode(ticketCopy); err != nil {
 		h.logger.Error("Failed to encode response", "error", err)
 	}
 }
