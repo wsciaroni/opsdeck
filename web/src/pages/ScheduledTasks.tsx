@@ -5,6 +5,7 @@ import { listScheduledTasks, deleteScheduledTask } from '../api/scheduled_tasks'
 import { Plus, Edit2, Trash2, Calendar, Repeat } from 'lucide-react';
 import { format } from 'date-fns';
 import CreateScheduledTaskModal from '../components/scheduled_tasks/CreateScheduledTaskModal';
+import EmptyState from '../components/EmptyState';
 import type { ScheduledTask } from '../types';
 
 export default function ScheduledTasks() {
@@ -72,11 +73,21 @@ export default function ScheduledTasks() {
             ) : error ? (
                 <div>Error loading tasks</div>
             ) : tasks?.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow">
-                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No scheduled tasks</h3>
-                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new recurring task.</p>
-                </div>
+                <EmptyState
+                    title="No scheduled tasks"
+                    description="Get started by creating a new recurring task."
+                    icon={Calendar}
+                    action={
+                        <button
+                            type="button"
+                            onClick={handleCreate}
+                            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Task
+                        </button>
+                    }
+                />
             ) : (
                 <div className="bg-white shadow overflow-hidden sm:rounded-md">
                     <ul className="divide-y divide-gray-200">
