@@ -81,3 +81,29 @@ export const TICKET_PRIORITIES = [
   { id: 'medium', label: 'Medium', level: 2 },
   { id: 'low', label: 'Low', level: 1 },
 ] as const;
+
+export interface ScheduledTask {
+  id: string;
+  organization_id: string;
+  title: string;
+  description: string;
+  frequency: string;
+  start_date: string;
+  next_run_at: string;
+  created_by: string;
+  assignee_user_id: string | null;
+  assignee_user_name?: string;
+  created_by_name?: string;
+  priority_id: string;
+  location: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const FREQUENCIES = [
+  { id: 'daily', label: 'Daily' },
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'yearly', label: 'Yearly' },
+] as const;
