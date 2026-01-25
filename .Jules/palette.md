@@ -11,3 +11,7 @@
 ## 2026-01-24 - Accessible Clickable Table Rows
 **Learning:** Clickable table rows (`<tr onClick={...} />`) are inaccessible to keyboard users by default, breaking the navigation flow. Adding `tabIndex="0"`, `role="button"` (or just handling interactions), and `onKeyDown` handlers for Enter/Space is essential for keyboard accessibility.
 **Action:** When implementing clickable rows, ensure they are focusable (`tabIndex="0"`), have visible focus states (`focus:ring`), respond to keyboard events (`Enter`/`Space`), and provide an accessible name via `aria-label`.
+
+## 2026-01-25 - Async Button Feedback
+**Learning:** Adding immediate visual feedback (spinner + text change) to submit buttons significantly improves perceived performance and prevents double-submissions.
+**Action:** Use the `Loader2` icon and `mutation.isPending` state for all async form submission buttons.
