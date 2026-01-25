@@ -73,19 +73,19 @@ const TicketRow = memo(function TicketRow({ ticket, density }: { ticket: Ticket;
       }}
       aria-label={`View ticket: ${ticket.title}`}
     >
-      <td className={clsx("whitespace-nowrap px-3 text-sm text-gray-500", paddingClass)}>
+      <td className={clsx("whitespace-nowrap px-3 text-sm text-gray-500 text-left", paddingClass)}>
         <StatusBadge status={ticket.status_id} />
       </td>
-      <td className={clsx("whitespace-nowrap px-3 font-bold text-gray-900", paddingClass, fontSizeClass)}>
+      <td className={clsx("whitespace-nowrap px-3 font-bold text-gray-900 text-left", paddingClass, fontSizeClass)}>
         {ticket.title}
       </td>
-      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
         <PriorityLabel priority={ticket.priority_id} />
       </td>
-      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
         {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
       </td>
-      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
         {new Date(ticket.created_at).toLocaleDateString()}
       </td>
     </tr>
