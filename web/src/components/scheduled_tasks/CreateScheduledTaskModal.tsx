@@ -24,29 +24,32 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
     enabled: true,
   });
 
+  // Reset form data when initialData changes or modal opens
   useEffect(() => {
-    if (initialData) {
-        setFormData({
-            title: initialData.title,
-            description: initialData.description,
-            priority_id: initialData.priority_id,
-            frequency: initialData.frequency,
-            start_date: new Date(initialData.next_run_at).toISOString().split('T')[0],
-            location: initialData.location,
-            enabled: initialData.enabled,
-        });
-    } else {
-        setFormData({
-            title: '',
-            description: '',
-            priority_id: 'medium',
-            frequency: 'daily',
-            start_date: new Date().toISOString().split('T')[0],
-            location: '',
-            enabled: true,
-        });
+    if (isOpen) {
+        if (initialData) {
+            setFormData({
+                title: initialData.title,
+                description: initialData.description,
+                priority_id: initialData.priority_id,
+                frequency: initialData.frequency,
+                start_date: new Date(initialData.next_run_at).toISOString().split('T')[0],
+                location: initialData.location,
+                enabled: initialData.enabled,
+            });
+        } else {
+            setFormData({
+                title: '',
+                description: '',
+                priority_id: 'medium',
+                frequency: 'daily',
+                start_date: new Date().toISOString().split('T')[0],
+                location: '',
+                enabled: true,
+            });
+        }
     }
-  }, [initialData, isOpen]);
+  }, [isOpen, initialData]);
 
   const createMutation = useMutation({
     mutationFn: createScheduledTask,
@@ -58,6 +61,7 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
   });
 
   const updateMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: (data: any) => updateScheduledTask(initialData!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduledTasks'] });
