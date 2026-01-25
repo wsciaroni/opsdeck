@@ -10,6 +10,7 @@ import PublicTicketDetail from './pages/PublicTicketDetail';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Layout from './components/Layout';
+import DemoBanner from './components/DemoBanner';
 import { type ReactNode } from 'react';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
@@ -35,6 +36,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Toaster position="bottom-right" reverseOrder={false} />
+        <DemoBanner />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/submit-ticket" element={<PublicTicketSubmit />} />
