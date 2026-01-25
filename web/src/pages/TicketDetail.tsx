@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTicket, updateTicket } from '../api/tickets';
 import { getMembers } from '../api/organizations';
 import TicketComments from '../components/TicketComments';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, Paperclip } from 'lucide-react';
 import type { Ticket } from '../types';
 import toast from 'react-hot-toast';
 
@@ -178,6 +178,46 @@ export default function TicketDetail() {
                 <div className="bg-gray-100 p-4 rounded-md border border-gray-200 whitespace-pre-wrap">
                   {ticket.description}
                 </div>
+              </dd>
+            </div>
+            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500">Attachments</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {ticket.files && ticket.files.length > 0 ? (
+                  <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {ticket.files.map((file) => (
+                      <li key={file.id} className="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400">
+                        <div className="flex-shrink-0">
+                          {file.content_type.startsWith('image/') ? (
+                            <img
+                              src={`/api/tickets/${ticket.id}/files/${file.id}`}
+                              alt={file.filename}
+                              className="h-10 w-10 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <Paperclip className="h-10 w-10 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <a
+                            href={`/api/tickets/${ticket.id}/files/${file.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="focus:outline-none"
+                          >
+                            <span className="absolute inset-0" aria-hidden="true" />
+                            <p className="text-sm font-medium text-gray-900">{file.filename}</p>
+                            <p className="truncate text-sm text-gray-500">
+                              {(file.size / 1024).toFixed(2)} KB
+                            </p>
+                          </a>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-gray-500 italic">No attachments</span>
+                )}
               </dd>
             </div>
           </dl>

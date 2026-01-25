@@ -56,6 +56,7 @@ func NewRouter(
 			r.Post("/tickets", ticketHandler.CreateTicket)
 			r.Get("/tickets", ticketHandler.ListTickets)
 			r.Get("/tickets/{ticketID}", ticketHandler.GetTicket)
+			r.Get("/tickets/{ticketID}/files/{fileID}", ticketHandler.GetTicketFile)
 			r.Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
 
 			// Comments

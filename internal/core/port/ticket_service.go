@@ -16,6 +16,7 @@ type CreateTicketCmd struct {
 	Location       string
 	PriorityID     string
 	Sensitive      bool
+	Files          []domain.File
 }
 
 // UpdateTicketCmd defines the command to update an existing ticket.
@@ -35,4 +36,6 @@ type TicketService interface {
 	UpdateTicket(ctx context.Context, id uuid.UUID, cmd UpdateTicketCmd) (*domain.Ticket, error)
 	ListTickets(ctx context.Context, filter TicketFilter) ([]domain.Ticket, error)
 	GetTicket(ctx context.Context, id uuid.UUID) (*domain.Ticket, error)
+	GetTicketFile(ctx context.Context, id uuid.UUID) (*domain.File, error)
+	ListTicketFiles(ctx context.Context, ticketID uuid.UUID) ([]domain.File, error)
 }

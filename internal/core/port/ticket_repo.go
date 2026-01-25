@@ -26,4 +26,8 @@ type TicketRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Ticket, error)
 	List(ctx context.Context, filter TicketFilter) ([]domain.Ticket, error)
 	Update(ctx context.Context, ticket *domain.Ticket) error
+
+	AddFile(ctx context.Context, file *domain.File) error
+	GetFile(ctx context.Context, id uuid.UUID) (*domain.File, error)
+	ListFiles(ctx context.Context, ticketID uuid.UUID) ([]domain.File, error)
 }
