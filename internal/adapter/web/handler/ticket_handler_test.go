@@ -527,7 +527,8 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		// Add file
 		part, _ := writer.CreateFormFile("files", "test.txt")
-		part.Write([]byte("hello world"))
+		_, err := part.Write([]byte("hello world"))
+		assert.NoError(t, err)
 
 		_ = writer.Close()
 

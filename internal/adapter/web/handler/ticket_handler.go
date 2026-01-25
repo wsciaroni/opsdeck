@@ -781,7 +781,9 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.Filename))
 	}
-	w.Write(file.Data)
+	if _, err := w.Write(file.Data); err != nil {
+		h.logger.Error("failed to write file data", "error", err)
+	}
 }
 
 func sanitizeCSV(s string) string {
