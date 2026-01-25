@@ -1,6 +1,6 @@
 import { Popover, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { Filter, X } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import clsx from 'clsx';
 
