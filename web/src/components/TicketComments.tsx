@@ -4,7 +4,7 @@ import { getComments, createComment } from '../api/comments';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2 } from 'lucide-react';
 
 interface TicketCommentsProps {
   ticketId: string;
@@ -137,7 +137,14 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
                   mutation.isPending || !body.trim() ? "bg-indigo-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
                 )}
               >
-                {mutation.isPending ? 'Posting...' : 'Post Comment'}
+                {mutation.isPending ? (
+                  <>
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    Posting...
+                  </>
+                ) : (
+                  'Post Comment'
+                )}
               </button>
             </div>
           </form>
