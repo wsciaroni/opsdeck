@@ -72,7 +72,7 @@ export default function ScheduledTasks() {
                 <div>Loading...</div>
             ) : error ? (
                 <div>Error loading tasks</div>
-            ) : tasks?.length === 0 ? (
+            ) : !tasks || tasks.length === 0 ? (
                 <EmptyState
                     title="No scheduled tasks"
                     description="Get started by creating a new recurring task."

@@ -65,7 +65,7 @@ func (r *ScheduledTaskRepository) List(ctx context.Context, organizationID uuid.
 	}
 	defer rows.Close()
 
-	var tasks []domain.ScheduledTask
+	tasks := make([]domain.ScheduledTask, 0)
 	for rows.Next() {
 		var t domain.ScheduledTask
 		err := rows.Scan(
