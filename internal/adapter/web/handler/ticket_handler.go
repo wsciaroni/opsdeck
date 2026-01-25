@@ -345,12 +345,12 @@ func (h *TicketHandler) ExportTickets(w http.ResponseWriter, r *http.Request) {
 		row := []string{
 			t.ID.String(),
 			t.OrganizationID.String(),
-			t.Title,
+			sanitizeCSV(t.Title),
 			t.StatusID,
 			t.PriorityID,
 			t.ReporterID.String(),
 			t.CreatedAt.Format(time.RFC3339),
-			t.Description,
+			sanitizeCSV(t.Description),
 		}
 		if err := writer.Write(row); err != nil {
 			h.logger.Error("failed to write csv row", "error", err)
@@ -629,4 +629,11 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(updatedTicket); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
 	}
+}
+
+func sanitizeCSV(s string) string {
+	if strings.HasPrefix(s, "=") || strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") || strings.HasPrefix(s, "@") {
+		return "'" + s
+	}
+	return s
 }

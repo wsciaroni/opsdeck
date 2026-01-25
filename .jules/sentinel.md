@@ -16,3 +16,8 @@
 **Vulnerability:** The OAuth flow used a hardcoded state parameter ("state-random-string"), making it vulnerable to CSRF/Account Takeover attacks where an attacker could force a user to log in to the attacker's account.
 **Learning:** OAuth `state` parameter must be a unique, unguessable, cryptographically secure random string bound to the user's session (e.g., via a cookie) and verified in the callback.
 **Prevention:** Implemented a `generateState` helper using `crypto/rand` and an `oauth_state` cookie (HTTPOnly, Secure, Lax) to store and verify the state during the OAuth dance.
+
+## 2026-01-22 - CSV Injection (Formula Injection) in Exports
+**Vulnerability:** The ticket export functionality (`ExportTickets`) directly included user-controlled input (`Title`, `Description`) in CSV files. If these fields started with `=`, `+`, `-`, or `@`, they would be executed as formulas by spreadsheet software (Excel, Sheets), potentially leading to command execution or data exfiltration.
+**Learning:** CSV is not just text; it's a file format that spreadsheet software interprets. Any user input going into a CSV must be sanitized.
+**Prevention:** Prepend a single quote `'` to any field starting with the dangerous characters (`=`, `+`, `-`, `@`) to force the spreadsheet software to treat it as a literal string.
