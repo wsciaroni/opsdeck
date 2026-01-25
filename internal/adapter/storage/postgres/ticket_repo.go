@@ -220,3 +220,82 @@ func (r *TicketRepository) Update(ctx context.Context, ticket *domain.Ticket) er
 
 	return nil
 }
+
+func (r *TicketRepository) AddFile(ctx context.Context, file *domain.File) error {
+	query := `
+		INSERT INTO ticket_files (ticket_id, filename, content_type, size, data)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at
+	`
+	err := r.db.QueryRow(ctx, query,
+		file.TicketID,
+		file.Filename,
+		file.ContentType,
+		file.Size,
+		file.Data,
+	).Scan(&file.ID, &file.CreatedAt)
+
+	if err != nil {
+		return fmt.Errorf("failed to add file: %w", err)
+	}
+	return nil
+}
+
+func (r *TicketRepository) GetFile(ctx context.Context, id uuid.UUID) (*domain.File, error) {
+	query := `
+		SELECT id, ticket_id, filename, content_type, size, data, created_at
+		FROM ticket_files
+		WHERE id = $1
+	`
+	var f domain.File
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&f.ID,
+		&f.TicketID,
+		&f.Filename,
+		&f.ContentType,
+		&f.Size,
+		&f.Data,
+		&f.CreatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+	return &f, nil
+}
+
+func (r *TicketRepository) ListFiles(ctx context.Context, ticketID uuid.UUID) ([]domain.File, error) {
+	query := `
+		SELECT id, ticket_id, filename, content_type, size, created_at
+		FROM ticket_files
+		WHERE ticket_id = $1
+		ORDER BY created_at ASC
+	`
+	// Note: NOT selecting data.
+
+	rows, err := r.db.Query(ctx, query, ticketID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list files: %w", err)
+	}
+	defer rows.Close()
+
+	var files []domain.File
+	for rows.Next() {
+		var f domain.File
+		err := rows.Scan(
+			&f.ID,
+			&f.TicketID,
+			&f.Filename,
+			&f.ContentType,
+			&f.Size,
+			&f.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan file: %w", err)
+		}
+		files = append(files, f)
+	}
+	return files, nil
+}

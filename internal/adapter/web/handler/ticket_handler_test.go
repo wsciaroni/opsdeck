@@ -59,6 +59,22 @@ func (m *MockTicketService) GetTicket(ctx context.Context, id uuid.UUID) (*domai
 	return args.Get(0).(*domain.Ticket), args.Error(1)
 }
 
+func (m *MockTicketService) GetTicketFile(ctx context.Context, id uuid.UUID) (*domain.File, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.File), args.Error(1)
+}
+
+func (m *MockTicketService) ListTicketFiles(ctx context.Context, ticketID uuid.UUID) ([]domain.File, error) {
+	args := m.Called(ctx, ticketID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.File), args.Error(1)
+}
+
 type MockOrgRepo struct {
 	mock.Mock
 }
@@ -464,6 +480,65 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "Invalid email")
+	})
+
+	t.Run("Success - Multipart form data with files", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "valid-token-files"
+		orgID := uuid.New()
+		org := &domain.Organization{
+			ID:               orgID,
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		userID := uuid.New()
+		user := &domain.User{
+			ID:    userID,
+			Email: "files@example.com",
+		}
+		ticket := &domain.Ticket{
+			ID:    uuid.New(),
+			Title: "Ticket With Files",
+		}
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+		mockUserRepo.On("GetByEmail", mock.Anything, "files@example.com").Return(user, nil)
+
+		// Expect files in cmd
+		mockService.On("CreateTicket", mock.Anything, mock.MatchedBy(func(cmd port.CreateTicketCmd) bool {
+			return cmd.OrganizationID == orgID && len(cmd.Files) == 1 && cmd.Files[0].Filename == "test.txt"
+		})).Return(ticket, nil)
+
+		// Create multipart body
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		_ = writer.WriteField("token", token)
+		_ = writer.WriteField("title", "Ticket With Files")
+		_ = writer.WriteField("description", "Desc")
+		_ = writer.WriteField("name", "User")
+		_ = writer.WriteField("email", "files@example.com")
+		_ = writer.WriteField("priority_id", "medium")
+
+		// Add file
+		part, _ := writer.CreateFormFile("files", "test.txt")
+		_, err := part.Write([]byte("hello world"))
+		assert.NoError(t, err)
+
+		_ = writer.Close()
+
+		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 }
 

@@ -17,6 +17,15 @@ export interface Organization {
   updated_at: string;
 }
 
+export interface File {
+  id: string;
+  ticket_id: string;
+  filename: string;
+  content_type: string;
+  size: number;
+  created_at: string;
+}
+
 export interface Ticket {
   id: string;
   organization_id: string;
@@ -38,6 +47,7 @@ export interface Ticket {
 export interface TicketDetail extends Ticket {
   reporter_name: string;
   assignee_name?: string;
+  files?: File[];
 }
 
 export interface CreateTicketRequest {

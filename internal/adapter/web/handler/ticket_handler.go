@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -25,8 +27,9 @@ type TicketHandler struct {
 
 type TicketDetailResponse struct {
 	*domain.Ticket
-	ReporterName string `json:"reporter_name"`
-	AssigneeName string `json:"assignee_name"`
+	ReporterName string        `json:"reporter_name"`
+	AssigneeName string        `json:"assignee_name"`
+	Files        []domain.File `json:"files"`
 }
 
 type CreateTicketRequest struct {
@@ -131,10 +134,17 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	files, err := h.service.ListTicketFiles(r.Context(), ticket.ID)
+	if err != nil {
+		h.logger.Error("failed to list ticket files", "error", err)
+		// continue without files
+	}
+
 	resp := TicketDetailResponse{
 		Ticket:       ticket,
 		ReporterName: reporterName,
 		AssigneeName: assigneeName,
+		Files:        files,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -146,6 +156,7 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 
 func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreatePublicTicketRequest
+	var files []domain.File
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -159,6 +170,32 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		req.Name = r.FormValue("name")
 		req.Email = r.FormValue("email")
 		req.Priority = r.FormValue("priority_id")
+
+		if r.MultipartForm != nil && r.MultipartForm.File != nil {
+			for _, fileHeader := range r.MultipartForm.File["files"] {
+				f, err := fileHeader.Open()
+				if err != nil {
+					h.logger.Error("failed to open uploaded file", "error", err)
+					http.Error(w, "Failed to process files", http.StatusInternalServerError)
+					return
+				}
+				defer f.Close()
+
+				data, err := io.ReadAll(f)
+				if err != nil {
+					h.logger.Error("failed to read uploaded file", "error", err)
+					http.Error(w, "Failed to process files", http.StatusInternalServerError)
+					return
+				}
+
+				files = append(files, domain.File{
+					Filename:    fileHeader.Filename,
+					ContentType: fileHeader.Header.Get("Content-Type"),
+					Size:        fileHeader.Size,
+					Data:        data,
+				})
+			}
+		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -234,6 +271,7 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		Title:          req.Title,
 		Description:    req.Description,
 		PriorityID:     req.Priority,
+		Files:          files,
 		// Location? Not in public form?
 	}
 
@@ -372,9 +410,54 @@ func (h *TicketHandler) writeEmptyCSV(w http.ResponseWriter) {
 
 func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	var files []domain.File
+
+	contentType := r.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+		orgIDStr := r.FormValue("organization_id")
+		if orgIDStr != "" {
+			req.OrganizationID, _ = uuid.Parse(orgIDStr)
+		}
+		req.Title = r.FormValue("title")
+		req.Description = r.FormValue("description")
+		req.Priority = r.FormValue("priority_id")
+		req.Location = r.FormValue("location")
+		req.Sensitive = r.FormValue("sensitive") == "true"
+
+		if r.MultipartForm != nil && r.MultipartForm.File != nil {
+			for _, fileHeader := range r.MultipartForm.File["files"] {
+				f, err := fileHeader.Open()
+				if err != nil {
+					h.logger.Error("failed to open uploaded file", "error", err)
+					http.Error(w, "Failed to process files", http.StatusInternalServerError)
+					return
+				}
+				defer f.Close()
+
+				data, err := io.ReadAll(f)
+				if err != nil {
+					h.logger.Error("failed to read uploaded file", "error", err)
+					http.Error(w, "Failed to process files", http.StatusInternalServerError)
+					return
+				}
+
+				files = append(files, domain.File{
+					Filename:    fileHeader.Filename,
+					ContentType: fileHeader.Header.Get("Content-Type"),
+					Size:        fileHeader.Size,
+					Data:        data,
+				})
+			}
+		}
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
 	}
 
 	user := middleware.GetUser(r.Context())
@@ -421,6 +504,7 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		Location:       req.Location,
 		PriorityID:     req.Priority,
 		Sensitive:      req.Sensitive,
+		Files:          files,
 	}
 
 	ticket, err := h.service.CreateTicket(r.Context(), cmd)
@@ -632,6 +716,73 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(updatedTicket); err != nil {
 		h.logger.Error("failed to encode response", "error", err)
+	}
+}
+
+func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
+	fileIDStr := chi.URLParam(r, "fileID")
+	fileID, err := uuid.Parse(fileIDStr)
+	if err != nil {
+		http.Error(w, "Invalid file ID", http.StatusBadRequest)
+		return
+	}
+
+	file, err := h.service.GetTicketFile(r.Context(), fileID)
+	if err != nil {
+		h.logger.Error("failed to get file", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if file == nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	ticket, err := h.service.GetTicket(r.Context(), file.TicketID)
+	if err != nil {
+		h.logger.Error("failed to get ticket for file access check", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if ticket == nil {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return
+	}
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	if err != nil {
+		h.logger.Error("failed to list user memberships", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	isMember := false
+	for _, m := range memberships {
+		if m.ID == ticket.OrganizationID {
+			isMember = true
+			break
+		}
+	}
+
+	if !isMember {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	w.Header().Set("Content-Type", file.ContentType)
+	if strings.HasPrefix(file.ContentType, "image/") {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", file.Filename))
+	} else {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.Filename))
+	}
+	if _, err := w.Write(file.Data); err != nil {
+		h.logger.Error("failed to write file data", "error", err)
 	}
 }
 
