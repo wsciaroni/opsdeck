@@ -591,6 +591,14 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		filter.AssigneeID = &assigneeID
 	}
 
+	if sortBy := r.URL.Query().Get("sort_by"); sortBy != "" {
+		filter.SortBy = sortBy
+	}
+
+	if sortOrder := r.URL.Query().Get("sort_order"); sortOrder != "" {
+		filter.SortOrder = sortOrder
+	}
+
 	tickets, err := h.service.ListTickets(r.Context(), filter)
 	if err != nil {
 		h.logger.Error("failed to list tickets", "error", err)

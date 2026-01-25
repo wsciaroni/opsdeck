@@ -18,6 +18,8 @@ type TicketFilter struct {
 	ExcludeDescription bool
 	Sensitive          *bool
 	Keyword            *string
+	SortBy             string
+	SortOrder          string
 }
 
 // TicketRepository defines the interface for interacting with ticket data.

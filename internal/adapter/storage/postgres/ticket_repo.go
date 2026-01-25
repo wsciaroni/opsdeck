@@ -149,7 +149,41 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 		args = append(args, keyword)
 	}
 
-	query += " ORDER BY created_at DESC"
+	orderBy := "created_at DESC"
+	if filter.SortBy != "" {
+		direction := "ASC"
+		if filter.SortOrder == "desc" {
+			direction = "DESC"
+		}
+
+		switch filter.SortBy {
+		case "created_at":
+			orderBy = fmt.Sprintf("created_at %s", direction)
+		case "updated_at":
+			orderBy = fmt.Sprintf("updated_at %s", direction)
+		case "title":
+			orderBy = fmt.Sprintf("title %s", direction)
+		case "priority":
+			orderBy = fmt.Sprintf(`CASE priority_id
+				WHEN 'critical' THEN 4
+				WHEN 'high' THEN 3
+				WHEN 'medium' THEN 2
+				WHEN 'low' THEN 1
+				ELSE 0
+			END %s`, direction)
+		case "status":
+			orderBy = fmt.Sprintf(`CASE status_id
+				WHEN 'new' THEN 1
+				WHEN 'in_progress' THEN 2
+				WHEN 'on_hold' THEN 3
+				WHEN 'done' THEN 4
+				WHEN 'canceled' THEN 5
+				ELSE 6
+			END %s`, direction)
+		}
+	}
+
+	query += " ORDER BY " + orderBy
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
