@@ -106,16 +106,16 @@ export default function PublicTicketList({ tickets, isLoading, error }: PublicTi
                       }}
                       aria-label={`View ticket: ${ticket.title}`}
                     >
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-left">
                         <StatusBadge status={ticket.status_id} />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900 text-left">
                         {ticket.title}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-left">
                         <PriorityLabel priority={ticket.priority_id} />
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-left">
                         {new Date(ticket.created_at).toLocaleDateString()}
                       </td>
                     </tr>
