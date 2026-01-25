@@ -4,6 +4,7 @@ import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
 import { Inbox, Plus } from 'lucide-react';
 import clsx from 'clsx';
+import { memo } from 'react';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -15,11 +16,13 @@ interface TicketListProps {
   onOpenNewTicket: () => void;
 }
 
-function MobileTicketCard({ ticket, onClick }: { readonly ticket: Ticket; readonly onClick: () => void }) {
+const MobileTicketCard = memo(function MobileTicketCard({ ticket }: { readonly ticket: Ticket }) {
+  const navigate = useNavigate();
+
   return (
     <li className="block bg-white hover:bg-gray-50 cursor-pointer">
       <button
-        onClick={onClick}
+        onClick={() => navigate(`/tickets/${ticket.id}`)}
         className="w-full text-left px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
       >
         <div className="flex items-center justify-between mb-2">
@@ -40,11 +43,56 @@ function MobileTicketCard({ ticket, onClick }: { readonly ticket: Ticket; readon
       </button>
     </li>
   );
-}
+});
 
-export default function TicketList({ tickets, isLoading, error, density, onOpenNewTicket }: TicketListProps) {
+const TicketRow = memo(function TicketRow({ ticket, density }: { ticket: Ticket; density: Density }) {
   const navigate = useNavigate();
 
+  const paddingClass = {
+    compact: 'py-2',
+    standard: 'py-4',
+    comfortable: 'py-6',
+  }[density];
+
+  const fontSizeClass = {
+    compact: 'text-xs',
+    standard: 'text-sm',
+    comfortable: 'text-base',
+  }[density];
+
+  return (
+    <tr
+      onClick={() => navigate(`/tickets/${ticket.id}`)}
+      className="cursor-pointer hover:bg-gray-50 focus:outline-none focus:bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/tickets/${ticket.id}`);
+        }
+      }}
+      aria-label={`View ticket: ${ticket.title}`}
+    >
+      <td className={clsx("whitespace-nowrap px-3 text-sm text-gray-500", paddingClass)}>
+        <StatusBadge status={ticket.status_id} />
+      </td>
+      <td className={clsx("whitespace-nowrap px-3 font-bold text-gray-900", paddingClass, fontSizeClass)}>
+        {ticket.title}
+      </td>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+        <PriorityLabel priority={ticket.priority_id} />
+      </td>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+        {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
+      </td>
+      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
+        {new Date(ticket.created_at).toLocaleDateString()}
+      </td>
+    </tr>
+  );
+});
+
+export default function TicketList({ tickets, isLoading, error, density, onOpenNewTicket }: TicketListProps) {
   if (isLoading) {
     return <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">Loading tickets...</div>;
   }
@@ -75,19 +123,6 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
     );
   }
 
-  // Density styles
-  const paddingClass = {
-    compact: 'py-2',
-    standard: 'py-4',
-    comfortable: 'py-6',
-  }[density];
-
-  const fontSizeClass = {
-    compact: 'text-xs',
-    standard: 'text-sm',
-    comfortable: 'text-base',
-  }[density];
-
   return (
     <>
       {/* Mobile View - Always standard density for mobile mostly, or strictly card based */}
@@ -97,7 +132,6 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
             <MobileTicketCard
               key={ticket.id}
               ticket={ticket}
-              onClick={() => navigate(`/tickets/${ticket.id}`)}
             />
           ))}
         </ul>
@@ -120,35 +154,11 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {tickets?.map((ticket: Ticket) => (
-                    <tr
+                    <TicketRow
                       key={ticket.id}
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
-                      className="cursor-pointer hover:bg-gray-50 focus:outline-none focus:bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigate(`/tickets/${ticket.id}`);
-                        }
-                      }}
-                      aria-label={`View ticket: ${ticket.title}`}
-                    >
-                      <td className={clsx("whitespace-nowrap px-3 text-sm text-gray-500", paddingClass)}>
-                        <StatusBadge status={ticket.status_id} />
-                      </td>
-                      <td className={clsx("whitespace-nowrap px-3 font-bold text-gray-900", paddingClass, fontSizeClass)}>
-                        {ticket.title}
-                      </td>
-                      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
-                        <PriorityLabel priority={ticket.priority_id} />
-                      </td>
-                      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
-                        {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
-                      </td>
-                      <td className={clsx("whitespace-nowrap px-3 text-gray-500", paddingClass, fontSizeClass)}>
-                        {new Date(ticket.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
+                      ticket={ticket}
+                      density={density}
+                    />
                   ))}
                 </tbody>
               </table>
