@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import { Paperclip } from 'lucide-react';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
     priority_id: 'medium',
     sensitive: false,
   });
+  const [files, setFiles] = useState<FileList | null>(null);
 
   const mutation = useMutation({
     mutationFn: createTicket,
@@ -25,6 +27,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       onClose();
       setNewTicket({ title: '', description: '', priority_id: 'medium', sensitive: false });
+      setFiles(null);
       toast.success("Ticket created!");
     },
   });
@@ -32,10 +35,30 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!organizationId) return;
-    mutation.mutate({
-      ...newTicket,
-      organization_id: organizationId,
-    });
+
+    if (files && files.length > 0) {
+      const formData = new FormData();
+      formData.append('organization_id', organizationId);
+      formData.append('title', newTicket.title);
+      formData.append('description', newTicket.description);
+      formData.append('priority_id', newTicket.priority_id);
+      formData.append('sensitive', String(newTicket.sensitive));
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      mutation.mutate(formData);
+    } else {
+      mutation.mutate({
+        ...newTicket,
+        organization_id: organizationId,
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(e.target.files);
+    }
   };
 
   return (
@@ -107,6 +130,26 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                               <option value="high">High</option>
                               <option value="critical">Critical</option>
                             </select>
+                          </div>
+                          <div>
+                            <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">Attachments</label>
+                            <div className="mt-1 flex items-center">
+                              <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2">
+                                <Paperclip className="h-4 w-4" />
+                                <span>Upload files</span>
+                                <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
+                              </label>
+                            </div>
+                            {files && files.length > 0 && (
+                              <ul className="mt-3 space-y-1">
+                                {Array.from(files).map((file, index) => (
+                                  <li key={index} className="text-sm text-gray-500 flex items-center">
+                                    <Paperclip className="h-3 w-3 mr-2 text-gray-400" />
+                                    {file.name}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
                           <div className="flex items-center">
                             <input
