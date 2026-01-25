@@ -19,6 +19,7 @@ func NewRouter(
 	orgHandler *handler.OrgHandler,
 	commentHandler *handler.CommentHandler,
 	publicViewHandler *handler.PublicViewHandler,
+	scheduledTaskHandler *handler.ScheduledTaskHandler,
 	authMW *appMiddleware.AuthMiddleware,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -62,6 +63,12 @@ func NewRouter(
 			// Comments
 			r.Post("/tickets/{ticketID}/comments", commentHandler.Create)
 			r.Get("/tickets/{ticketID}/comments", commentHandler.List)
+
+			// Scheduled Tasks
+			r.Get("/scheduled-tasks", scheduledTaskHandler.List)
+			r.Post("/scheduled-tasks", scheduledTaskHandler.Create)
+			r.Patch("/scheduled-tasks/{id}", scheduledTaskHandler.Update)
+			r.Delete("/scheduled-tasks/{id}", scheduledTaskHandler.Delete)
 
 			r.Post("/organizations", orgHandler.CreateOrganization)
 			r.Post("/organizations/{id}/members", orgHandler.AddMember)

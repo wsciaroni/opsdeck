@@ -118,11 +118,16 @@ func main() {
 	// Init Public View
 	publicViewHandler := handler.NewPublicViewHandler(orgRepo, ticketService, commentService, repo, logger)
 
+	// Init Scheduled Tasks
+	scheduledTaskRepo := postgres.NewScheduledTaskRepository(pool)
+	scheduledTaskService := service.NewScheduledTaskService(scheduledTaskRepo)
+	scheduledTaskHandler := handler.NewScheduledTaskHandler(scheduledTaskService, orgRepo, logger)
+
 	// Init Middleware
 	authMiddleware := middleware.NewAuthMiddleware(repo, logger, sessionSecret)
 
 	// Setup Router
-	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, publicViewHandler, authMiddleware)
+	router := web.NewRouter(pool, staticFS, authHandler, ticketHandler, orgHandler, commentHandler, publicViewHandler, scheduledTaskHandler, authMiddleware)
 
 	// Start Server
 	srv := &http.Server{

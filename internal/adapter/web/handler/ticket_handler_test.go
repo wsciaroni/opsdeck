@@ -573,6 +573,43 @@ func TestCreateTicket(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("Success - Create Ticket", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+		r := chi.NewRouter()
+		r.Post("/tickets", h.CreateTicket)
+
+		user := &domain.User{ID: uuid.New()}
+		orgID := uuid.New()
+		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+		ticket := &domain.Ticket{ID: uuid.New(), Title: "Title", Description: "Desc", PriorityID: "medium"}
+
+		mockService.On("CreateTicket", mock.Anything, mock.MatchedBy(func(cmd port.CreateTicketCmd) bool {
+			return cmd.OrganizationID == orgID && cmd.Title == "Title" && cmd.Description == "Desc" && cmd.PriorityID == "medium"
+		})).Return(ticket, nil)
+
+		reqBody := map[string]interface{}{
+			"organization_id": orgID,
+			"title":           "Title",
+			"description":     "Desc",
+			"priority_id":     "medium",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest("POST", "/tickets", bytes.NewReader(bodyBytes))
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+	})
 }
 
 func TestListTickets(t *testing.T) {
