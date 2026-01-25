@@ -11,8 +11,8 @@ import (
 type TicketFilter struct {
 	OrganizationID     *uuid.UUID
 	OrganizationIDs    []uuid.UUID
-	StatusID           *string
-	PriorityID         *string
+	StatusIDs          []string
+	PriorityIDs        []string
 	AssigneeID         *uuid.UUID
 	ReporterID         *uuid.UUID
 	ExcludeDescription bool

@@ -23,8 +23,8 @@ export default function Dashboard() {
   // Filter states
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [priority, setPriority] = useState('');
-  const [status, setStatus] = useState('');
+  const [priority, setPriority] = useState<string[] | undefined>(undefined);
+  const [status, setStatus] = useState<string[] | undefined>(undefined);
 
   // Debounce search
   useEffect(() => {

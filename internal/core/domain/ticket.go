@@ -53,3 +53,17 @@ type TicketPriority struct {
 	Label string
 	Level int
 }
+
+// IsFinishedStatus checks if the given status represents a finished state.
+func IsFinishedStatus(status string) bool {
+	return status == TicketStatusDone || status == TicketStatusCanceled
+}
+
+// GetActiveStatusIDs returns the list of status IDs that are considered active.
+func GetActiveStatusIDs() []string {
+	return []string{
+		TicketStatusNew,
+		TicketStatusInProgress,
+		TicketStatusOnHold,
+	}
+}

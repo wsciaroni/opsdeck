@@ -482,12 +482,16 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		ExcludeDescription: true,
 	}
 
-	if status := r.URL.Query().Get("status"); status != "" {
-		filter.StatusID = &status
+	statuses := r.URL.Query()["status"]
+	if len(statuses) > 0 {
+		filter.StatusIDs = statuses
+	} else {
+		filter.StatusIDs = domain.GetActiveStatusIDs()
 	}
 
-	if priority := r.URL.Query().Get("priority"); priority != "" {
-		filter.PriorityID = &priority
+	priorities := r.URL.Query()["priority"]
+	if len(priorities) > 0 {
+		filter.PriorityIDs = priorities
 	}
 
 	if search := r.URL.Query().Get("search"); search != "" {

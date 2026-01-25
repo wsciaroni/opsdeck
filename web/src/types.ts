@@ -56,3 +56,18 @@ export interface Member {
   avatar_url: string;
   role: string;
 }
+
+export const TICKET_STATUSES = [
+  { id: 'new', label: 'New', isFinished: false },
+  { id: 'in_progress', label: 'In Progress', isFinished: false },
+  { id: 'on_hold', label: 'On Hold', isFinished: false },
+  { id: 'done', label: 'Done', isFinished: true },
+  { id: 'canceled', label: 'Canceled', isFinished: true },
+] as const;
+
+export const TICKET_PRIORITIES = [
+  { id: 'critical', label: 'Critical', level: 4 },
+  { id: 'high', label: 'High', level: 3 },
+  { id: 'medium', label: 'Medium', level: 2 },
+  { id: 'low', label: 'Low', level: 1 },
+] as const;
