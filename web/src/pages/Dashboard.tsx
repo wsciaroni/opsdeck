@@ -92,6 +92,7 @@ export default function Dashboard() {
                 isLoading={isLoading}
                 error={error}
                 density={density}
+                visibleStatuses={status}
                 onOpenNewTicket={() => setIsModalOpen(true)}
             />
           </div>

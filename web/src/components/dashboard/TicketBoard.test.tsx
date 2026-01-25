@@ -79,4 +79,43 @@ describe('TicketBoard', () => {
     );
     expect(screen.getByText('Loading tickets...')).toBeInTheDocument();
   });
+
+  it('renders only active columns by default', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={[]}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getByText('In Progress')).toBeInTheDocument();
+    expect(screen.getByText('On Hold')).toBeInTheDocument();
+    expect(screen.queryByText('Done')).not.toBeInTheDocument();
+    expect(screen.queryByText('Canceled')).not.toBeInTheDocument();
+  });
+
+  it('renders filtered columns when visibleStatuses is provided', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={[]}
+            isLoading={false}
+            error={null}
+            density="standard"
+            visibleStatuses={['new', 'done']}
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText('New')).toBeInTheDocument();
+    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
+  });
 });

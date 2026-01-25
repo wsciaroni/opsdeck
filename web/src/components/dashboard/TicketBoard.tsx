@@ -1,6 +1,6 @@
 import { useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Ticket } from '../../types';
+import { type Ticket, TICKET_STATUSES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
 import { type Density } from './TicketList';
@@ -10,6 +10,7 @@ interface TicketBoardProps {
   isLoading: boolean;
   error: Error | null;
   density: Density;
+  visibleStatuses?: string[];
   onOpenNewTicket: () => void;
 }
 
@@ -17,14 +18,6 @@ interface TicketCardProps {
   ticket: Ticket;
   density: Density;
 }
-
-const STATUS_COLUMNS = [
-  { id: 'new', label: 'New' },
-  { id: 'in_progress', label: 'In Progress' },
-  { id: 'on_hold', label: 'On Hold' },
-  { id: 'done', label: 'Done' },
-  { id: 'canceled', label: 'Canceled' },
-];
 
 const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps) {
   const navigate = useNavigate();
@@ -72,7 +65,13 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
   );
 });
 
-export default function TicketBoard({ tickets, isLoading, error, density }: TicketBoardProps) {
+export default function TicketBoard({
+  tickets,
+  isLoading,
+  error,
+  density,
+  visibleStatuses,
+}: TicketBoardProps) {
   // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
   const ticketsByStatus = useMemo(() => {
     return (tickets || []).reduce((acc, ticket) => {
@@ -83,13 +82,33 @@ export default function TicketBoard({ tickets, isLoading, error, density }: Tick
     }, {} as Record<string, Ticket[]>);
   }, [tickets]);
 
+  const columns = useMemo(() => {
+    if (visibleStatuses && visibleStatuses.length > 0) {
+      return TICKET_STATUSES.filter((status) => visibleStatuses.includes(status.id));
+    }
+    // Default view: Show active statuses (not finished)
+    return TICKET_STATUSES.filter((status) => !status.isFinished);
+  }, [visibleStatuses]);
+
+  const columnWidthClass = {
+    compact: 'min-w-[14rem]',
+    standard: 'min-w-[16rem]',
+    comfortable: 'min-w-[18rem]',
+  }[density];
+
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading tickets...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error loading tickets</div>;
 
   return (
     <div className="flex h-full overflow-x-auto space-x-4 pb-4">
-      {STATUS_COLUMNS.map((column) => (
-        <div key={column.id} className="flex-shrink-0 w-72 bg-gray-100 rounded-lg flex flex-col max-h-[calc(100vh-12rem)]">
+      {columns.map((column) => (
+        <div
+          key={column.id}
+          className={clsx(
+            'flex-1 bg-gray-100 rounded-lg flex flex-col max-h-[calc(100vh-12rem)]',
+            columnWidthClass
+          )}
+        >
           <div className="p-3 font-semibold text-gray-700 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
             <span>{column.label}</span>
             <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
@@ -100,11 +119,9 @@ export default function TicketBoard({ tickets, isLoading, error, density }: Tick
             {ticketsByStatus[column.id]?.map((ticket) => (
               <TicketCard key={ticket.id} ticket={ticket} density={density} />
             ))}
-             {ticketsByStatus[column.id]?.length === 0 && (
-                <div className="text-center text-gray-400 text-sm py-4 italic">
-                    No tickets
-                </div>
-             )}
+            {!ticketsByStatus[column.id]?.length && (
+              <div className="text-center text-gray-400 text-sm py-4 italic">No tickets</div>
+            )}
           </div>
         </div>
       ))}
