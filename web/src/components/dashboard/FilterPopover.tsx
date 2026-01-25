@@ -88,7 +88,7 @@ export default function FilterPopover({
       return;
     }
 
-    const level = parseInt(value, 10);
+    const level = Number.parseInt(value, 10);
     const newPrio = TICKET_PRIORITIES.filter((p) => p.level >= level).map((p) => p.id);
     setPriority(newPrio);
   };
