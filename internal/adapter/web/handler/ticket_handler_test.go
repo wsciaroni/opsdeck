@@ -531,6 +531,7 @@ func TestListTickets(t *testing.T) {
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
 			OrganizationID:     &orgID,
 			ExcludeDescription: true,
+			StatusIDs:          domain.GetActiveStatusIDs(),
 		}).Return(tickets, nil)
 
 		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String(), nil)
@@ -591,6 +592,7 @@ func TestListTickets(t *testing.T) {
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
 			OrganizationID:     &orgID,
 			ExcludeDescription: true,
+			StatusIDs:          domain.GetActiveStatusIDs(),
 		}).Return(tickets, nil)
 
 		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return(members, nil)
@@ -645,7 +647,8 @@ func TestListTickets(t *testing.T) {
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
 			OrganizationID:     &orgID,
 			ExcludeDescription: true,
-			PriorityID:         &priority,
+			PriorityIDs:        []string{priority},
+			StatusIDs:          domain.GetActiveStatusIDs(),
 			Keyword:            &search,
 		}).Return(tickets, nil)
 
@@ -656,6 +659,37 @@ func TestListTickets(t *testing.T) {
 
 		r.ServeHTTP(w, req)
 
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("Success - List tickets with multiple statuses", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+
+		r := chi.NewRouter()
+		r.Get("/tickets", h.ListTickets)
+
+		user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
+		orgID := uuid.New()
+		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
+
+		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+		// Expect explicit statuses
+		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
+			OrganizationID:     &orgID,
+			ExcludeDescription: true,
+			StatusIDs:          []string{"new", "done"},
+		}).Return([]domain.Ticket{}, nil)
+
+		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String()+"&status=new&status=done", nil)
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }

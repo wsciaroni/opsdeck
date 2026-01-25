@@ -2,6 +2,7 @@ import { Plus, List, Layout, Search } from 'lucide-react';
 import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
+import FilterPopover from './FilterPopover';
 
 interface DashboardHeaderProps {
   currentOrg: Organization | null;
@@ -12,10 +13,10 @@ interface DashboardHeaderProps {
   setDensity: (density: Density) => void;
   search: string;
   setSearch: (search: string) => void;
-  priority: string;
-  setPriority: (priority: string) => void;
-  status: string;
-  setStatus: (status: string) => void;
+  priority: string[] | undefined;
+  setPriority: (priority: string[] | undefined) => void;
+  status: string[] | undefined;
+  setStatus: (status: string[] | undefined) => void;
 }
 
 export default function DashboardHeader({
@@ -71,30 +72,12 @@ export default function DashboardHeader({
                 />
             </div>
 
-            <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="block w-full sm:w-auto rounded-md border-gray-300 py-2 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"
-            >
-                <option value="">All Statuses</option>
-                <option value="new">New</option>
-                <option value="in_progress">In Progress</option>
-                <option value="on_hold">On Hold</option>
-                <option value="done">Done</option>
-                <option value="canceled">Canceled</option>
-            </select>
-
-            <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="block w-full sm:w-auto rounded-md border-gray-300 py-2 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"
-            >
-                <option value="">All Priorities</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-            </select>
+            <FilterPopover
+                status={status}
+                setStatus={setStatus}
+                priority={priority}
+                setPriority={setPriority}
+            />
         </div>
 
         {/* Right controls: View Mode & Density */}

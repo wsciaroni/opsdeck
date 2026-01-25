@@ -113,9 +113,9 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 		argIdx++
 	}
 
-	if filter.StatusID != nil {
-		query += fmt.Sprintf(" AND status_id = $%d", argIdx)
-		args = append(args, *filter.StatusID)
+	if len(filter.StatusIDs) > 0 {
+		query += fmt.Sprintf(" AND status_id = ANY($%d)", argIdx)
+		args = append(args, filter.StatusIDs)
 		argIdx++
 	}
 
@@ -137,9 +137,9 @@ func (r *TicketRepository) List(ctx context.Context, filter port.TicketFilter) (
 		argIdx++
 	}
 
-	if filter.PriorityID != nil {
-		query += fmt.Sprintf(" AND priority_id = $%d", argIdx)
-		args = append(args, *filter.PriorityID)
+	if len(filter.PriorityIDs) > 0 {
+		query += fmt.Sprintf(" AND priority_id = ANY($%d)", argIdx)
+		args = append(args, filter.PriorityIDs)
 		argIdx++
 	}
 
