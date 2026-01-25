@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [priority, setPriority] = useState<string[] | undefined>(undefined);
   const [status, setStatus] = useState<string[] | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem('dashboard_sort_by') || 'created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (localStorage.getItem('dashboard_sort_order') as 'asc' | 'desc') || 'desc');
 
   // Debounce search
   useEffect(() => {
@@ -43,9 +45,17 @@ export default function Dashboard() {
     localStorage.setItem('dashboard_density', density);
   }, [density]);
 
+  useEffect(() => {
+    localStorage.setItem('dashboard_sort_by', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_sort_order', sortOrder);
+  }, [sortOrder]);
+
   const { data: tickets, isLoading, error } = useQuery({
-    queryKey: ['tickets', currentOrg?.id, debouncedSearch, priority, status],
-    queryFn: () => getTickets(currentOrg!.id, { search: debouncedSearch, priority, status }),
+    queryKey: ['tickets', currentOrg?.id, debouncedSearch, priority, status, sortBy, sortOrder],
+    queryFn: () => getTickets(currentOrg!.id, { search: debouncedSearch, priority, status, sort_by: sortBy, sort_order: sortOrder }),
     enabled: !!currentOrg,
   });
 
@@ -72,6 +82,10 @@ export default function Dashboard() {
         setPriority={setPriority}
         status={status}
         setStatus={setStatus}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
       />
 
       <div className="flex-1 overflow-hidden">

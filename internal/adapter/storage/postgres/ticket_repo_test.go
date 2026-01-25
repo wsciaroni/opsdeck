@@ -128,4 +128,49 @@ func TestTicketRepository_List(t *testing.T) {
 		assert.Len(t, tickets, 1)
 		assert.Equal(t, ticket1.ID, tickets[0].ID)
 	})
+
+	t.Run("Sort By Priority DESC", func(t *testing.T) {
+		tCritical := &domain.Ticket{OrganizationID: org1.ID, ReporterID: user.ID, Title: "Critical", StatusID: "new", PriorityID: "critical"}
+		tHigh := &domain.Ticket{OrganizationID: org1.ID, ReporterID: user.ID, Title: "High", StatusID: "new", PriorityID: "high"}
+		tMedium := &domain.Ticket{OrganizationID: org1.ID, ReporterID: user.ID, Title: "Medium", StatusID: "new", PriorityID: "medium"}
+
+		require.NoError(t, repo.Create(ctx, tCritical))
+		require.NoError(t, repo.Create(ctx, tHigh))
+		require.NoError(t, repo.Create(ctx, tMedium))
+
+		filter := port.TicketFilter{
+			OrganizationID: &org1.ID,
+			SortBy:         "priority",
+			SortOrder:      "desc",
+			Keyword:        nil, // Ensure no keyword search
+		}
+		tickets, err := repo.List(ctx, filter)
+		require.NoError(t, err)
+
+		// Filter out the initial ticket1 (Low) to make assertions easier, or include it.
+		// Let's just check the first 3 are Critical, High, Medium.
+		// Note: ticket1 is Low, so it should be last.
+
+		// We expect 4 tickets in total for org1.
+		require.Len(t, tickets, 4)
+
+		assert.Equal(t, "critical", tickets[0].PriorityID)
+		assert.Equal(t, "high", tickets[1].PriorityID)
+		assert.Equal(t, "medium", tickets[2].PriorityID)
+		assert.Equal(t, "low", tickets[3].PriorityID)
+	})
+
+	t.Run("Sort By CreatedAt ASC", func(t *testing.T) {
+		filter := port.TicketFilter{
+			OrganizationID: &org1.ID,
+			SortBy:         "created_at",
+			SortOrder:      "asc",
+		}
+		tickets, err := repo.List(ctx, filter)
+		require.NoError(t, err)
+		require.Len(t, tickets, 4)
+
+		// ticket1 was created first (in setup).
+		assert.Equal(t, ticket1.ID, tickets[0].ID)
+	})
 }

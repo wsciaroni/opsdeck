@@ -17,6 +17,10 @@ interface DashboardHeaderProps {
   setPriority: (priority: string[] | undefined) => void;
   status: string[] | undefined;
   setStatus: (status: string[] | undefined) => void;
+  sortBy: string;
+  setSortBy: (sortBy: string) => void;
+  sortOrder: 'asc' | 'desc';
+  setSortOrder: (sortOrder: 'asc' | 'desc') => void;
 }
 
 export default function DashboardHeader({
@@ -32,6 +36,10 @@ export default function DashboardHeader({
   setPriority,
   status,
   setStatus,
+  sortBy,
+  setSortBy,
+  sortOrder,
+  setSortOrder,
 }: DashboardHeaderProps) {
   return (
     <div className="mb-6">
@@ -82,6 +90,27 @@ export default function DashboardHeader({
 
         {/* Right controls: View Mode & Density */}
         <div className="flex items-center space-x-4">
+             <div className="relative inline-block text-left">
+                 <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                        const [field, order] = e.target.value.split('-');
+                        setSortBy(field);
+                        setSortOrder(order as 'asc' | 'desc');
+                    }}
+                    className="block w-full rounded-md border-gray-300 py-1.5 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"
+                 >
+                    <option value="created_at-desc">Newest First</option>
+                    <option value="created_at-asc">Oldest First</option>
+                    <option value="updated_at-desc">Recently Updated</option>
+                    <option value="updated_at-asc">Least Recently Updated</option>
+                    <option value="priority-desc">Priority (High-Low)</option>
+                    <option value="priority-asc">Priority (Low-High)</option>
+                    <option value="status-asc">Status (New-Done)</option>
+                    <option value="status-desc">Status (Done-New)</option>
+                 </select>
+            </div>
+
             <div className="flex items-center space-x-1 border rounded-md p-1 bg-gray-50">
                 <button
                     onClick={() => setViewMode('list')}
