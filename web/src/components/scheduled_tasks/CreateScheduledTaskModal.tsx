@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createScheduledTask, updateScheduledTask } from '../../api/scheduled_tasks';
 import toast from 'react-hot-toast';
@@ -14,42 +14,32 @@ interface CreateScheduledTaskModalProps {
 
 export default function CreateScheduledTaskModal({ isOpen, onClose, organizationId, initialData }: CreateScheduledTaskModalProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    priority_id: 'medium',
-    frequency: 'daily',
-    start_date: new Date().toISOString().split('T')[0], // Default to today
-    location: '',
-    enabled: true,
-  });
 
-  // Reset form data when initialData changes or modal opens
-  useEffect(() => {
-    if (isOpen) {
-        if (initialData) {
-            setFormData({
-                title: initialData.title,
-                description: initialData.description,
-                priority_id: initialData.priority_id,
-                frequency: initialData.frequency,
-                start_date: new Date(initialData.next_run_at).toISOString().split('T')[0],
-                location: initialData.location,
-                enabled: initialData.enabled,
-            });
-        } else {
-            setFormData({
-                title: '',
-                description: '',
-                priority_id: 'medium',
-                frequency: 'daily',
-                start_date: new Date().toISOString().split('T')[0],
-                location: '',
-                enabled: true,
-            });
-        }
+  // Initialize state directly from props.
+  // This component is expected to be re-mounted (via key change in parent)
+  // whenever it is opened or the target task changes.
+  const [formData, setFormData] = useState(() => {
+    if (initialData) {
+        return {
+            title: initialData.title,
+            description: initialData.description,
+            priority_id: initialData.priority_id,
+            frequency: initialData.frequency,
+            start_date: new Date(initialData.next_run_at).toISOString().split('T')[0],
+            location: initialData.location,
+            enabled: initialData.enabled,
+        };
     }
-  }, [isOpen, initialData]);
+    return {
+        title: '',
+        description: '',
+        priority_id: 'medium',
+        frequency: 'daily',
+        start_date: new Date().toISOString().split('T')[0],
+        location: '',
+        enabled: true,
+    };
+  });
 
   const createMutation = useMutation({
     mutationFn: createScheduledTask,
