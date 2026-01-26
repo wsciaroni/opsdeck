@@ -15,3 +15,7 @@
 ## 2026-01-25 - Async Button Feedback
 **Learning:** Adding immediate visual feedback (spinner + text change) to submit buttons significantly improves perceived performance and prevents double-submissions.
 **Action:** Use the `Loader2` icon and `mutation.isPending` state for all async form submission buttons.
+
+## 2026-01-26 - Skip to Content Link
+**Learning:** Single Page Applications (SPAs) often neglect the "Skip to Content" link because navigation is handled by JS, but keyboard users still need a way to bypass repetitive header navigation on every page load.
+**Action:** Always include a visually hidden, focusable anchor tag (`href="#main-content"`) at the top of the `Layout` component and ensure the `<main>` element has `id="main-content"` and `tabIndex={-1}` for focus management.
