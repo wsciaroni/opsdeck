@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -21,6 +22,34 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
+
+// LargeReader generates a large stream of 'A's
+type LargeReader struct {
+	Size int64
+	read int64
+}
+
+func (r *LargeReader) Read(p []byte) (n int, err error) {
+	if r.read >= r.Size {
+		return 0, io.EOF
+	}
+	remaining := r.Size - r.read
+	n = len(p)
+	if int64(n) > remaining {
+		n = int(remaining)
+	}
+	for i := 0; i < n; i++ {
+		if r.read+int64(i) == 0 {
+			p[i] = '['
+		} else if r.read+int64(i) == 1 {
+			p[i] = '"'
+		} else {
+			p[i] = 'A'
+		}
+	}
+	r.read += int64(n)
+	return n, nil
+}
 
 // Mocks
 type MockTicketService struct {
@@ -480,6 +509,23 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "Invalid email")
+	})
+
+	t.Run("RequestEntityTooLarge - Body too large", func(t *testing.T) {
+		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		// Create a reader larger than MaxRequestSize (32MB)
+		largeReader := &LargeReader{Size: handler.MaxRequestSize + 1024}
+
+		req := httptest.NewRequest("POST", "/public/tickets", largeReader)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
 	})
 
 	t.Run("Success - Multipart form data with files", func(t *testing.T) {

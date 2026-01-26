@@ -18,6 +18,8 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
 
+const MaxRequestSize = 32 << 20 // 32MB
+
 type TicketHandler struct {
 	service  port.TicketService
 	orgRepo  port.OrganizationRepository
@@ -158,9 +160,16 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 	var req CreatePublicTicketRequest
 	var files []domain.File
 
+	// Limit request size to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+
 	contentType := r.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			if strings.Contains(err.Error(), "request body too large") {
+				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			http.Error(w, "Invalid form data", http.StatusBadRequest)
 			return
 		}
@@ -198,6 +207,10 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			if strings.Contains(err.Error(), "request body too large") {
+				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -412,9 +425,16 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
 	var files []domain.File
 
+	// Limit request size to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+
 	contentType := r.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			if strings.Contains(err.Error(), "request body too large") {
+				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			http.Error(w, "Invalid form data", http.StatusBadRequest)
 			return
 		}
@@ -455,6 +475,10 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			if strings.Contains(err.Error(), "request body too large") {
+				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
