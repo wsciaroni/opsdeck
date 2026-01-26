@@ -14,6 +14,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:p-4 focus:bg-white focus:text-indigo-600 focus:shadow-lg focus:outline-none"
+      >
+        Skip to content
+      </a>
       <nav className="bg-white border-b border-gray-200 relative z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -103,7 +109,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         )}
       </nav>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {children}
       </main>
     </div>
