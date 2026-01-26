@@ -14,6 +14,21 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+// Mock matchMedia for Desktop view (matches: true for min-width: 768px)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query) => ({
+    matches: query === '(min-width: 768px)',
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 const mockTickets: Ticket[] = [
   {
     id: '123',

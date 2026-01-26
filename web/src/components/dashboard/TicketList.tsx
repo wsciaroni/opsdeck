@@ -4,9 +4,26 @@ import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
 import { Inbox, Plus } from 'lucide-react';
 import clsx from 'clsx';
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.matchMedia('(min-width: 768px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  return isDesktop;
+}
 
 interface TicketListProps {
   tickets: Ticket[] | undefined;
@@ -93,6 +110,9 @@ const TicketRow = memo(function TicketRow({ ticket, density }: { ticket: Ticket;
 });
 
 export default function TicketList({ tickets, isLoading, error, density, onOpenNewTicket }: TicketListProps) {
+  // Optimization: Conditionally render mobile or desktop view to reduce DOM nodes by ~50%
+  const isDesktop = useIsDesktop();
+
   if (isLoading) {
     return <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">Loading tickets...</div>;
   }
@@ -126,46 +146,50 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
   return (
     <>
       {/* Mobile View - Always standard density for mobile mostly, or strictly card based */}
-      <div className="md:hidden bg-white shadow overflow-hidden rounded-md border border-gray-200">
-        <ul className="divide-y divide-gray-200">
-          {tickets?.map((ticket: Ticket) => (
-            <MobileTicketCard
-              key={ticket.id}
-              ticket={ticket}
-            />
-          ))}
-        </ul>
-      </div>
+      {!isDesktop && (
+        <div className="md:hidden bg-white shadow overflow-hidden rounded-md border border-gray-200">
+          <ul className="divide-y divide-gray-200">
+            {tickets?.map((ticket: Ticket) => (
+              <MobileTicketCard
+                key={ticket.id}
+                ticket={ticket}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Desktop View */}
-      <div className="hidden md:flex flex-col">
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full py-2 align-middle">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Title</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Priority</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assignee</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {tickets?.map((ticket: Ticket) => (
-                    <TicketRow
-                      key={ticket.id}
-                      ticket={ticket}
-                      density={density}
-                    />
-                  ))}
-                </tbody>
-              </table>
+      {isDesktop && (
+        <div className="hidden md:flex flex-col">
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full py-2 align-middle">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg bg-white">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Title</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Priority</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assignee</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {tickets?.map((ticket: Ticket) => (
+                      <TicketRow
+                        key={ticket.id}
+                        ticket={ticket}
+                        density={density}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
