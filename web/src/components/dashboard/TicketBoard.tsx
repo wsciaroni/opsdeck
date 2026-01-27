@@ -65,7 +65,7 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
   );
 });
 
-export default function TicketBoard({
+const TicketBoard = memo(function TicketBoard({
   tickets,
   isLoading,
   error,
@@ -127,4 +127,6 @@ export default function TicketBoard({
       ))}
     </div>
   );
-}
+});
+
+export default TicketBoard;
