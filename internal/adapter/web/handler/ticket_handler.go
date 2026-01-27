@@ -808,7 +808,14 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", file.ContentType)
-	if strings.HasPrefix(file.ContentType, "image/") {
+
+	isSafeImage := false
+	switch file.ContentType {
+	case "image/jpeg", "image/png", "image/gif", "image/webp":
+		isSafeImage = true
+	}
+
+	if isSafeImage {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", file.Filename))
 	} else {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.Filename))
