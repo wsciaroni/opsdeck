@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createScheduledTask, updateScheduledTask } from '../../api/scheduled_tasks';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
+import { Loader2 } from 'lucide-react';
 import { FREQUENCIES, type ScheduledTask } from '../../types';
 
 interface CreateScheduledTaskModalProps {
@@ -208,10 +209,17 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
                   <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                     <button
                       type="submit"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                      className="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={createMutation.isPending || updateMutation.isPending}
                     >
-                      {createMutation.isPending || updateMutation.isPending ? 'Saving...' : (initialData ? 'Save Changes' : 'Create Task')}
+                      {createMutation.isPending || updateMutation.isPending ? (
+                        <>
+                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                          Saving...
+                        </>
+                      ) : (
+                        initialData ? 'Save Changes' : 'Create Task'
+                      )}
                     </button>
                     <button
                       type="button"

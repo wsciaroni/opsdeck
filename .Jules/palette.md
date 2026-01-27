@@ -19,3 +19,7 @@
 ## 2026-01-26 - Skip to Content Link
 **Learning:** Single Page Applications (SPAs) often neglect the "Skip to Content" link because navigation is handled by JS, but keyboard users still need a way to bypass repetitive header navigation on every page load.
 **Action:** Always include a visually hidden, focusable anchor tag (`href="#main-content"`) at the top of the `Layout` component and ensure the `<main>` element has `id="main-content"` and `tabIndex={-1}` for focus management.
+
+## 2026-02-05 - Disabled State Clarity
+**Learning:** Simply disabling a button isn't enough; visual cues like reduced opacity (`opacity-50`) and cursor change (`cursor-not-allowed`) are crucial for communicating that an action is temporarily unavailable (e.g., during submission).
+**Action:** Always pair `disabled={isPending}` with `disabled:opacity-50 disabled:cursor-not-allowed` utility classes to provide clear visual feedback.

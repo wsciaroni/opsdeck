@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, Loader2 } from 'lucide-react';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -171,10 +171,17 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                   <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                     <button
                       type="submit"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                      className="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={mutation.isPending}
                     >
-                      {mutation.isPending ? 'Creating...' : 'Create'}
+                      {mutation.isPending ? (
+                        <>
+                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                          Creating...
+                        </>
+                      ) : (
+                        'Create'
+                      )}
                     </button>
                     <button
                       type="button"
