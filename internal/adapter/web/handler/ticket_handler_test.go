@@ -851,3 +851,94 @@ func TestListTickets(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }
+
+func TestGetTicketFile(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Get("/tickets/files/{fileID}", h.GetTicketFile)
+
+	orgID := uuid.New()
+	user := &domain.User{ID: uuid.New()}
+	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
+
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
+
+	tests := []struct {
+		name                 string
+		contentType          string
+		expectedDisposition  string
+		expectedDisposition2 string // Alternative if needed, but we check prefix
+	}{
+		{
+			name:                "Safe Image PNG",
+			contentType:         "image/png",
+			expectedDisposition: "inline",
+		},
+		{
+			name:                "Safe Image JPEG",
+			contentType:         "image/jpeg",
+			expectedDisposition: "inline",
+		},
+		{
+			name:                "Unsafe Image SVG",
+			contentType:         "image/svg+xml",
+			expectedDisposition: "attachment",
+		},
+		{
+			name:                "HTML File",
+			contentType:         "text/html",
+			expectedDisposition: "attachment",
+		},
+		{
+			name:                "PDF File",
+			contentType:         "application/pdf",
+			expectedDisposition: "attachment",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fileID := uuid.New()
+			file := &domain.File{
+				ID:          fileID,
+				TicketID:    ticketID,
+				Filename:    "testfile",
+				ContentType: tc.contentType,
+				Data:        []byte("content"),
+			}
+
+			// Mock setups
+			// Note: We need to use "Call" or "On" logic carefully.
+			// Since we reuse mocks, we might need to reset or just expect unique calls.
+			// Ideally, we should create new mocks per test, but we can just register expectations.
+
+			// Note: The handler calls:
+			// 1. GetTicketFile
+			// 2. GetTicket
+			// 3. ListByUser (for auth)
+
+			mockService.On("GetTicketFile", mock.Anything, fileID).Return(file, nil).Once()
+			mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Once()
+			mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil).Once()
+
+			req := httptest.NewRequest("GET", "/tickets/files/"+fileID.String(), nil)
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, tc.contentType, w.Header().Get("Content-Type"))
+
+			disp := w.Header().Get("Content-Disposition")
+			if !strings.HasPrefix(disp, tc.expectedDisposition) {
+				t.Errorf("Expected Content-Disposition to start with %q, got %q", tc.expectedDisposition, disp)
+			}
+		})
+	}
+}
