@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { getTickets } from '../api/tickets';
@@ -10,6 +10,10 @@ import DashboardHeader from '../components/dashboard/DashboardHeader';
 export default function Dashboard() {
   const { currentOrg } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenNewTicket = useCallback(() => {
+    setIsModalOpen(true);
+  }, []);
 
   // State for view preferences with local storage persistence
   const [viewMode, setViewMode] = useState<'list' | 'board'>(() => {
@@ -71,7 +75,7 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col flex-1">
       <DashboardHeader
         currentOrg={currentOrg}
-        onOpenNewTicket={() => setIsModalOpen(true)}
+        onOpenNewTicket={handleOpenNewTicket}
         viewMode={viewMode}
         setViewMode={setViewMode}
         density={density}
@@ -96,7 +100,7 @@ export default function Dashboard() {
                 isLoading={isLoading}
                 error={error}
                 density={density}
-                onOpenNewTicket={() => setIsModalOpen(true)}
+                onOpenNewTicket={handleOpenNewTicket}
             />
           </div>
         ) : (
@@ -107,7 +111,7 @@ export default function Dashboard() {
                 error={error}
                 density={density}
                 visibleStatuses={status}
-                onOpenNewTicket={() => setIsModalOpen(true)}
+                onOpenNewTicket={handleOpenNewTicket}
             />
           </div>
         )}

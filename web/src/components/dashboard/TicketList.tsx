@@ -109,7 +109,7 @@ const TicketRow = memo(function TicketRow({ ticket, density }: { ticket: Ticket;
   );
 });
 
-export default function TicketList({ tickets, isLoading, error, density, onOpenNewTicket }: TicketListProps) {
+const TicketList = memo(function TicketList({ tickets, isLoading, error, density, onOpenNewTicket }: TicketListProps) {
   // Optimization: Conditionally render mobile or desktop view to reduce DOM nodes by ~50%
   const isDesktop = useIsDesktop();
 
@@ -192,4 +192,6 @@ export default function TicketList({ tickets, isLoading, error, density, onOpenN
       )}
     </>
   );
-}
+});
+
+export default TicketList;
