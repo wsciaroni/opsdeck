@@ -294,6 +294,7 @@ func TestExportTickets(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "multipart@example.com",
+			Role:  domain.RolePublic,
 		}
 		ticket := &domain.Ticket{
 			ID:    uuid.New(),
@@ -347,6 +348,7 @@ func TestCreatePublicTicket(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "test@example.com",
+			Role:  domain.RolePublic,
 		}
 		ticket := &domain.Ticket{
 			ID:    uuid.New(),
@@ -547,6 +549,7 @@ func TestCreatePublicTicket(t *testing.T) {
 		user := &domain.User{
 			ID:    userID,
 			Email: "files@example.com",
+			Role:  domain.RolePublic,
 		}
 		ticket := &domain.Ticket{
 			ID:    uuid.New(),
@@ -585,6 +588,49 @@ func TestCreatePublicTicket(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
+	})
+
+	t.Run("Forbidden - Staff email spoofing", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+		r := chi.NewRouter()
+		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "valid-token"
+		orgID := uuid.New()
+		org := &domain.Organization{
+			ID:               orgID,
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+
+		staffUser := &domain.User{
+			ID:    uuid.New(),
+			Email: "staff@example.com",
+			Role:  domain.RoleStaff,
+		}
+
+		reqBody := map[string]string{
+			"token":       token,
+			"title":       "Staff Spoof",
+			"description": "Desc",
+			"name":        "Staff User",
+			"email":       "staff@example.com",
+			"priority_id": "low",
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+		mockUserRepo.On("GetByEmail", mock.Anything, "staff@example.com").Return(staffUser, nil)
+
+		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
 }
 

@@ -277,6 +277,12 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		user = newUser
 	}
 
+	// Security Check: Prevent staff/admins from using public form to avoid spoofing
+	if user.Role != domain.RolePublic {
+		http.Error(w, "Please log in to use this email address", http.StatusForbidden)
+		return
+	}
+
 	// 3. Create Ticket
 	cmd := port.CreateTicketCmd{
 		OrganizationID: org.ID,
