@@ -92,6 +92,7 @@ export default function DashboardHeader({
         <div className="flex items-center space-x-4">
              <div className="relative inline-block text-left">
                  <select
+                    aria-label="Sort tickets"
                     value={`${sortBy}-${sortOrder}`}
                     onChange={(e) => {
                         const [field, order] = e.target.value.split('-');
@@ -119,6 +120,7 @@ export default function DashboardHeader({
                         viewMode === 'list' ? "bg-white shadow text-indigo-600" : "text-gray-500 hover:text-gray-700"
                     )}
                     title="List View"
+                    aria-label="List View"
                 >
                     <List className="h-4 w-4" />
                 </button>
@@ -129,6 +131,7 @@ export default function DashboardHeader({
                         viewMode === 'board' ? "bg-white shadow text-indigo-600" : "text-gray-500 hover:text-gray-700"
                     )}
                     title="Board View"
+                    aria-label="Board View"
                 >
                     <Layout className="h-4 w-4" />
                 </button>
@@ -136,6 +139,7 @@ export default function DashboardHeader({
 
             <div className="relative inline-block text-left">
                  <select
+                    aria-label="View density"
                     value={density}
                     onChange={(e) => setDensity(e.target.value as Density)}
                     className="block w-full rounded-md border-gray-300 py-1.5 pl-3 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm border"

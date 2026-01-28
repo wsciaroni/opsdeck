@@ -174,6 +174,7 @@ export default function FilterPopover({
 
                     {/* Min Priority Selector */}
                      <select
+                        aria-label="Minimum priority"
                         className="block w-full rounded-md border-gray-300 py-1.5 pl-3 pr-8 text-xs focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 mb-3"
                         onChange={handleMinPriorityChange}
                         value=""
