@@ -639,16 +639,30 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := h.orgRepo.ListMembers(r.Context(), orgID)
+	// Optimize: Collect user IDs from tickets instead of fetching ALL org members
+	userIDs := make(map[uuid.UUID]bool)
+	for _, t := range tickets {
+		userIDs[t.ReporterID] = true
+		if t.AssigneeUserID != nil {
+			userIDs[*t.AssigneeUserID] = true
+		}
+	}
+
+	uniqueUserIDs := make([]uuid.UUID, 0, len(userIDs))
+	for id := range userIDs {
+		uniqueUserIDs = append(uniqueUserIDs, id)
+	}
+
+	users, err := h.userRepo.GetByIDs(r.Context(), uniqueUserIDs)
 	if err != nil {
-		h.logger.Error("failed to list organization members", "error", err)
+		h.logger.Error("failed to list users for tickets", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	memberMap := make(map[uuid.UUID]string)
-	for _, m := range members {
-		memberMap[m.UserID] = m.Name
+	for _, u := range users {
+		memberMap[u.ID] = u.Name
 	}
 
 	response := make([]TicketDetailResponse, len(tickets))

@@ -189,6 +189,13 @@ func (m *MockUserRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.User,
 	}
 	return args.Get(0).(*domain.User), args.Error(1)
 }
+func (m *MockUserRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.User, error) {
+	args := m.Called(ctx, ids)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]domain.User), args.Error(1)
+}
 func (m *MockUserRepo) Update(ctx context.Context, user *domain.User) error {
 	return m.Called(ctx, user).Error(0)
 }
@@ -692,6 +699,11 @@ func TestListTickets(t *testing.T) {
 			StatusIDs:          domain.GetActiveStatusIDs(),
 		}).Return(tickets, nil)
 
+		// Expect GetByIDs (empty)
+		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
+			return len(ids) == 0
+		})).Return([]domain.User{}, nil)
+
 		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String(), nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 		req = req.WithContext(ctx)
@@ -739,11 +751,6 @@ func TestListTickets(t *testing.T) {
 			},
 		}
 
-		members := []domain.Member{
-			{UserID: assigneeID, Name: "Assignee User"},
-			{UserID: reporterID, Name: "Reporter User"},
-		}
-
 		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
 
 		// Expect ListTickets with ExcludeDescription: true
@@ -753,7 +760,13 @@ func TestListTickets(t *testing.T) {
 			StatusIDs:          domain.GetActiveStatusIDs(),
 		}).Return(tickets, nil)
 
-		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return(members, nil)
+		// Expect GetByIDs with 2 users
+		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
+			return len(ids) == 2
+		})).Return([]domain.User{
+			{ID: assigneeID, Name: "Assignee User"},
+			{ID: reporterID, Name: "Reporter User"},
+		}, nil)
 
 		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String(), nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
@@ -810,6 +823,11 @@ func TestListTickets(t *testing.T) {
 			Keyword:            &search,
 		}).Return(tickets, nil)
 
+		// Expect GetByIDs (empty)
+		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
+			return len(ids) == 0
+		})).Return([]domain.User{}, nil)
+
 		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String()+"&priority=high&search=urgent", nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 		req = req.WithContext(ctx)
@@ -841,6 +859,11 @@ func TestListTickets(t *testing.T) {
 			ExcludeDescription: true,
 			StatusIDs:          []string{"new", "done"},
 		}).Return([]domain.Ticket{}, nil)
+
+		// Expect GetByIDs (empty)
+		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
+			return len(ids) == 0
+		})).Return([]domain.User{}, nil)
 
 		req := httptest.NewRequest("GET", "/tickets?organization_id="+orgID.String()+"&status=new&status=done", nil)
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
