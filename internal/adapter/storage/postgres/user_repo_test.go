@@ -126,4 +126,56 @@ func TestUserRepository(t *testing.T) {
 	if missingUserEmail != nil {
 		t.Errorf("Expected nil for missing email, got %v", missingUserEmail)
 	}
+
+	// Test GetByIDs
+	user2 := &domain.User{
+		Email: "user2@example.com",
+		Name:  "User Two",
+		Role:  domain.RoleStaff,
+	}
+	if err := repo.Create(ctx, user2); err != nil {
+		t.Fatalf("Failed to create user2: %v", err)
+	}
+
+	users, err := repo.GetByIDs(ctx, []uuid.UUID{user.ID, user2.ID})
+	if err != nil {
+		t.Fatalf("GetByIDs failed: %v", err)
+	}
+	if len(users) != 2 {
+		t.Errorf("Expected 2 users, got %d", len(users))
+	}
+
+	// Check containment
+	userMap := make(map[uuid.UUID]domain.User)
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+	if _, ok := userMap[user.ID]; !ok {
+		t.Errorf("Expected to find user1")
+	}
+	if _, ok := userMap[user2.ID]; !ok {
+		t.Errorf("Expected to find user2")
+	}
+
+	// Test Empty IDs
+	emptyUsers, err := repo.GetByIDs(ctx, []uuid.UUID{})
+	if err != nil {
+		t.Fatalf("GetByIDs empty failed: %v", err)
+	}
+	if len(emptyUsers) != 0 {
+		t.Errorf("Expected 0 users, got %d", len(emptyUsers))
+	}
+
+	// Test Non-existent IDs
+	randomID := uuid.New()
+	partialUsers, err := repo.GetByIDs(ctx, []uuid.UUID{user.ID, randomID})
+	if err != nil {
+		t.Fatalf("GetByIDs partial failed: %v", err)
+	}
+	if len(partialUsers) != 1 {
+		t.Errorf("Expected 1 user, got %d", len(partialUsers))
+	}
+	if partialUsers[0].ID != user.ID {
+		t.Errorf("Expected user1, got %v", partialUsers[0].ID)
+	}
 }
