@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ScheduledTasks from './pages/ScheduledTasks';
+import Reports from './pages/Reports';
 import TicketDetail from './pages/TicketDetail';
 import TeamSettings from './pages/TeamSettings';
 import PublicTicketSubmit from './pages/PublicTicketSubmit';
@@ -46,6 +47,7 @@ function App() {
           <Route element={<RequireAuth><Layout><Outlet /></Layout></RequireAuth>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/scheduled-tasks" element={<ScheduledTasks />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/organizations/:orgId/settings/team" element={<TeamSettings />} />
             <Route path="/profile" element={<Profile />} />
