@@ -1018,137 +1018,101 @@ func LargeString(size int) string {
 }
 
 func TestUpdateTicket(t *testing.T) {
-	t.Run("DoS Prevention - Rejects body too large", func(t *testing.T) {
-		mockService := new(MockTicketService)
-		mockOrgRepo := new(MockOrgRepo)
-		mockUserRepo := new(MockUserRepo)
-		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
-		r := chi.NewRouter()
-		r.Patch("/tickets/{ticketID}", h.UpdateTicket)
+	ticketID := uuid.New()
+	orgID := uuid.New()
+	user := &domain.User{ID: uuid.New()}
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
 
-		// Create a reader larger than MaxRequestSize (32MB)
-		largeReader := &LargeReader{Size: handler.MaxRequestSize + 1024}
+	tests := []struct {
+		name           string
+		body           interface{}
+		expectedStatus int
+		expectError    string
+		setupMocks     func(*MockTicketService, *MockOrgRepo)
+	}{
+		{
+			name: "DoS Prevention - Rejects body too large",
+			body: &LargeReader{Size: handler.MaxRequestSize + 1024},
+			expectedStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name: "DoS Prevention - Rejects title too long",
+			body: map[string]string{
+				"title": LargeString(250), // Limit is 200
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectError:    "Title",
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				// No mocks needed because validation happens before DB calls?
+				// Actually handler does Decode -> Validation -> DB calls.
+				// Wait, the new logic:
+				// 1. Decode
+				// 2. Validate
+				// 3. DB Calls (GetTicket -> Check Auth)
+				// The previous test mock calls for GetTicket/ListByUser because validation was assumed to be after?
+				// Let's check the code.
+				// Validation happens *after* decode but *before* GetTicket.
+				// So no mocks needed for validation failure!
+			},
+		},
+		{
+			name: "DoS Prevention - Rejects description too long",
+			body: map[string]string{
+				"description": LargeString(5001), // Limit is 5000
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectError:    "Description",
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				// No mocks needed
+			},
+		},
+		{
+			name: "Success - Valid Update",
+			body: map[string]string{
+				"title":       "Valid Title",
+				"description": "Valid Description",
+			},
+			expectedStatus: http.StatusOK,
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}}}
+				mo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil)
+			},
+		},
+	}
 
-		req := httptest.NewRequest("PATCH", "/tickets/"+uuid.NewString(), largeReader)
-		req.Header.Set("Content-Type", "application/json")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService := new(MockTicketService)
+			mockOrgRepo := new(MockOrgRepo)
+			h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+			r := chi.NewRouter()
+			r.Patch("/tickets/{ticketID}", h.UpdateTicket)
 
-		// Authenticated User
-		user := &domain.User{ID: uuid.New()}
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
+			if tc.setupMocks != nil {
+				tc.setupMocks(mockService, mockOrgRepo)
+			}
 
-		w := httptest.NewRecorder()
+			var req *http.Request
+			if reader, ok := tc.body.(io.Reader); ok {
+				req = httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), reader)
+			} else {
+				bodyBytes, _ := json.Marshal(tc.body)
+				req = httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
+			}
+			req.Header.Set("Content-Type", "application/json")
 
-		r.ServeHTTP(w, req)
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
+			w := httptest.NewRecorder()
 
-		// Expect 413 Payload Too Large
-		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
-	})
+			r.ServeHTTP(w, req)
 
-	t.Run("DoS Prevention - Rejects title too long", func(t *testing.T) {
-		mockService := new(MockTicketService)
-		mockOrgRepo := new(MockOrgRepo)
-		h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
-		r := chi.NewRouter()
-		r.Patch("/tickets/{ticketID}", h.UpdateTicket)
-
-		ticketID := uuid.New()
-		orgID := uuid.New()
-		user := &domain.User{ID: uuid.New()}
-
-		// Setup Mocks for successful auth/membership check
-		ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
-		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}}}
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
-
-		// Payload with massive title
-		longTitle := LargeString(250) // Limit is 200
-		reqBody := map[string]string{
-			"title": longTitle,
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Title")
-	})
-
-	t.Run("DoS Prevention - Rejects description too long", func(t *testing.T) {
-		mockService := new(MockTicketService)
-		mockOrgRepo := new(MockOrgRepo)
-		h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
-		r := chi.NewRouter()
-		r.Patch("/tickets/{ticketID}", h.UpdateTicket)
-
-		ticketID := uuid.New()
-		orgID := uuid.New()
-		user := &domain.User{ID: uuid.New()}
-
-		// Setup Mocks
-		ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
-		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}}}
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
-
-		// Payload with massive description
-		longDesc := LargeString(5001) // Limit is 5000
-		reqBody := map[string]string{
-			"description": longDesc,
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Description")
-	})
-
-	t.Run("Success - Valid Update", func(t *testing.T) {
-		mockService := new(MockTicketService)
-		mockOrgRepo := new(MockOrgRepo)
-		h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
-		r := chi.NewRouter()
-		r.Patch("/tickets/{ticketID}", h.UpdateTicket)
-
-		ticketID := uuid.New()
-		orgID := uuid.New()
-		user := &domain.User{ID: uuid.New()}
-
-		ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
-		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}}}
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
-
-		mockService.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil)
-
-		reqBody := map[string]string{
-			"title": "Valid Title",
-			"description": "Valid Description",
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-	})
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			if tc.expectError != "" {
+				assert.Contains(t, w.Body.String(), tc.expectError)
+			}
+		})
+	}
 }
