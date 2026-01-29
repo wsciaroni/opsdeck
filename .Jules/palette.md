@@ -23,3 +23,7 @@
 ## 2026-02-05 - Disabled State Clarity
 **Learning:** Simply disabling a button isn't enough; visual cues like reduced opacity (`opacity-50`) and cursor change (`cursor-not-allowed`) are crucial for communicating that an action is temporarily unavailable (e.g., during submission).
 **Action:** Always pair `disabled={isPending}` with `disabled:opacity-50 disabled:cursor-not-allowed` utility classes to provide clear visual feedback.
+
+## 2026-05-18 - Keyboard Shortcuts
+**Learning:** Adding keyboard shortcuts (like 'c' for Create) significantly speeds up power user workflows, but they must be implemented carefully to avoid triggering during normal typing (e.g., in inputs/textareas).
+**Action:** Always wrap global keydown listeners in checks for `tagName` (INPUT, TEXTAREA) and `isContentEditable`. Add tooltips or hints to UI elements to help users discover these shortcuts.
