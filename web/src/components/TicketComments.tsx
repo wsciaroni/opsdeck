@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getComments, createComment } from '../api/comments';
+import { getComments, createComment, type Comment } from '../api/comments';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -9,6 +9,38 @@ import { Lock, Loader2 } from 'lucide-react';
 interface TicketCommentsProps {
   ticketId: string;
 }
+
+// Memoized component to prevent re-rendering all comments when typing in the input (parent state change)
+const CommentItem = memo(function CommentItem({ comment }: { readonly comment: Comment }) {
+  return (
+    <div className="flex space-x-3">
+      <div className="flex-shrink-0">
+        <img
+          className="h-10 w-10 rounded-full bg-gray-300"
+          src={comment.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}`}
+          alt={comment.user.name}
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div>
+          <div className="text-sm flex items-center">
+            <span className="font-medium text-gray-900 mr-2">{comment.user.name}</span>
+            <span className="text-gray-500 mr-2">{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+            {comment.sensitive && (
+              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                <Lock className="w-3 h-3 mr-1" />
+                Sensitive
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-sm text-gray-700">
+            <p className="whitespace-pre-wrap">{comment.body}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export default function TicketComments({ ticketId }: TicketCommentsProps) {
   const [body, setBody] = useState('');
@@ -66,32 +98,7 @@ export default function TicketComments({ ticketId }: TicketCommentsProps) {
             <p className="text-gray-500 text-sm text-center py-4">No comments yet. Start the conversation!</p>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="flex space-x-3">
-                <div className="flex-shrink-0">
-                  <img
-                    className="h-10 w-10 rounded-full bg-gray-300"
-                    src={comment.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}`}
-                    alt={comment.user.name}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div>
-                    <div className="text-sm flex items-center">
-                      <span className="font-medium text-gray-900 mr-2">{comment.user.name}</span>
-                      <span className="text-gray-500 mr-2">{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
-                      {comment.sensitive && (
-                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Sensitive
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-700">
-                      <p className="whitespace-pre-wrap">{comment.body}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CommentItem key={comment.id} comment={comment} />
             ))
           )}
         </div>
