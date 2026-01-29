@@ -703,8 +703,24 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateTicketRequest
+	// Limit request size to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Title != nil && (len(*req.Title) == 0 || len(*req.Title) > 200) {
+		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
+		return
+	}
+
+	if req.Description != nil && len(*req.Description) > 5000 {
+		http.Error(w, "Description too long", http.StatusBadRequest)
 		return
 	}
 
