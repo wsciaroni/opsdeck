@@ -15,6 +15,32 @@ export default function Dashboard() {
     setIsModalOpen(true);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input, textarea, or contentEditable element
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Ignore if modifiers are pressed
+      if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+      if (e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleOpenNewTicket();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleOpenNewTicket]);
+
   // State for view preferences with local storage persistence
   const [viewMode, setViewMode] = useState<'list' | 'board'>(() => {
     return (localStorage.getItem('dashboard_view_mode') as 'list' | 'board') || 'list';

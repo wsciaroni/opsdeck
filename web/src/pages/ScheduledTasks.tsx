@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listScheduledTasks, deleteScheduledTask } from '../api/scheduled_tasks';
@@ -36,11 +36,37 @@ export default function ScheduledTasks() {
         setIsModalOpen(true);
     };
 
-    const handleCreate = () => {
+    const handleCreate = useCallback(() => {
         setEditingTask(undefined);
         setModalVersion(v => v + 1);
         setIsModalOpen(true);
-    };
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if user is typing in an input, textarea, or contentEditable element
+            const target = e.target as HTMLElement;
+            if (
+                target.tagName === 'INPUT' ||
+                target.tagName === 'TEXTAREA' ||
+                target.tagName === 'SELECT' ||
+                target.isContentEditable
+            ) {
+                return;
+            }
+
+            // Ignore if modifiers are pressed
+            if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+            if (e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                handleCreate();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleCreate]);
 
     const handleDelete = async (id: string) => {
         if (confirm('Are you sure you want to delete this scheduled task?')) {
@@ -61,6 +87,7 @@ export default function ScheduledTasks() {
                 <h1 className="text-2xl font-semibold text-gray-900">Scheduled Tasks</h1>
                 <button
                     onClick={handleCreate}
+                    title="Press 'c' to create new task"
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                     <Plus className="h-4 w-4 mr-2" />
@@ -81,6 +108,7 @@ export default function ScheduledTasks() {
                         <button
                             type="button"
                             onClick={handleCreate}
+                            title="Press 'c' to create new task"
                             className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                         >
                             <Plus className="h-4 w-4 mr-2" />
@@ -115,10 +143,10 @@ export default function ScheduledTasks() {
                                                 </p>
                                             </div>
                                             <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                                <button onClick={() => handleEdit(task)} className="text-gray-400 hover:text-gray-600 mr-4">
+                                                <button onClick={() => handleEdit(task)} className="text-gray-400 hover:text-gray-600 mr-4" aria-label="Edit task">
                                                     <Edit2 className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleDelete(task.id)} className="text-red-400 hover:text-red-600">
+                                                <button onClick={() => handleDelete(task.id)} className="text-red-400 hover:text-red-600" aria-label="Delete task">
                                                     <Trash2 className="h-5 w-5" />
                                                 </button>
                                             </div>
