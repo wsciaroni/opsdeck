@@ -3,6 +3,7 @@ package web
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -37,7 +38,10 @@ func NewRouter(
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
 		r.Method(http.MethodGet, "/health", NewHealthHandler(db))
-		r.Post("/public/tickets", ticketHandler.CreatePublicTicket)
+
+		// Rate limit public ticket creation to 10 requests per minute per IP
+		rl := appMiddleware.NewRateLimiter(10, time.Minute)
+		r.With(rl.Limit).Post("/public/tickets", ticketHandler.CreatePublicTicket)
 
 		r.Route("/public/view/{token}", func(r chi.Router) {
 			r.Get("/organization", publicViewHandler.GetOrganization)
