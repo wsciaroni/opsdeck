@@ -6,6 +6,7 @@ import TicketComments from '../components/TicketComments';
 import { ArrowLeft, Lock, Paperclip } from 'lucide-react';
 import type { Ticket } from '../types';
 import toast from 'react-hot-toast';
+import clsx from 'clsx';
 
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
@@ -90,7 +91,7 @@ export default function TicketDetail() {
             value={ticket.status_id}
             onChange={handleStatusChange}
             disabled={mutation.isPending}
-            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="new">New</option>
             <option value="in_progress">In Progress</option>
@@ -107,7 +108,7 @@ export default function TicketDetail() {
             value={ticket.priority_id}
             onChange={handlePriorityChange}
             disabled={mutation.isPending}
-            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -123,7 +124,7 @@ export default function TicketDetail() {
             value={ticket.assignee_user_id || '00000000-0000-0000-0000-000000000000'}
             onChange={handleAssigneeChange}
             disabled={mutation.isPending}
-            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="00000000-0000-0000-0000-000000000000">Unassigned</option>
             {members?.map((member) => (
@@ -135,7 +136,7 @@ export default function TicketDetail() {
         </div>
 
         <div className="flex items-center ml-auto">
-           <label className="inline-flex items-center cursor-pointer">
+           <label className={clsx("inline-flex items-center cursor-pointer", mutation.isPending && "opacity-50 cursor-not-allowed")}>
             <input
               type="checkbox"
               className="sr-only peer"
