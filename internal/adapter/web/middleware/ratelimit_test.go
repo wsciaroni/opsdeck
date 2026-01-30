@@ -23,7 +23,7 @@ func TestRateLimiter(t *testing.T) {
 	// Test requests within limit
 	for i := 0; i < limit; i++ {
 		req := httptest.NewRequest("GET", "/", nil)
-		req.RemoteAddr = "192.168.1.1:1234"
+		req.RemoteAddr = "127.0.0.1:1234"
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -31,14 +31,14 @@ func TestRateLimiter(t *testing.T) {
 
 	// Test request exceeding limit
 	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "192.168.1.1:1234"
+	req.RemoteAddr = "127.0.0.1:1234"
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusTooManyRequests, w.Code)
 
 	// Test request from different IP (should succeed)
 	req = httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "192.168.1.2:1234"
+	req.RemoteAddr = "127.0.0.2:1234"
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -54,7 +54,7 @@ func TestRateLimiter_WindowReset(t *testing.T) {
 	}))
 
 	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "10.0.0.1:1234"
+	req.RemoteAddr = "127.0.0.1:1234"
 
 	// 1st request - OK
 	w := httptest.NewRecorder()
@@ -90,7 +90,7 @@ func TestRateLimiter_Concurrency(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			req := httptest.NewRequest("GET", "/", nil)
-			req.RemoteAddr = "1.2.3.4:5678"
+			req.RemoteAddr = "127.0.0.1:5678"
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			assert.Equal(t, http.StatusOK, w.Code)
@@ -100,7 +100,7 @@ func TestRateLimiter_Concurrency(t *testing.T) {
 
 	// Next one should fail
 	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "1.2.3.4:5678"
+	req.RemoteAddr = "127.0.0.1:5678"
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusTooManyRequests, w.Code)
@@ -118,7 +118,7 @@ func TestRateLimiter_IPv6(t *testing.T) {
 	// Test IPv6 requests within limit
 	for i := 0; i < limit; i++ {
 		req := httptest.NewRequest("GET", "/", nil)
-		req.RemoteAddr = "[2001:db8::1]:1234"
+		req.RemoteAddr = "[::1]:1234"
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code)
@@ -126,7 +126,7 @@ func TestRateLimiter_IPv6(t *testing.T) {
 
 	// Test IPv6 request exceeding limit
 	req := httptest.NewRequest("GET", "/", nil)
-	req.RemoteAddr = "[2001:db8::1]:1234"
+	req.RemoteAddr = "[::1]:1234"
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusTooManyRequests, w.Code)

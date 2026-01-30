@@ -60,6 +60,8 @@ func (rl *RateLimiter) cleanup() {
 
 func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// We use RemoteAddr instead of X-Forwarded-For to prevent IP spoofing.
+		// If behind a trusted proxy, this logic should be updated to verify the proxy chain.
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			ip = r.RemoteAddr
