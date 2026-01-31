@@ -116,24 +116,30 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reporterName := ""
-	reporter, err := h.userRepo.GetByID(r.Context(), ticket.ReporterID)
-	if err != nil {
-		h.logger.Error("failed to get reporter", "error", err)
-		// continue without reporter name
-	} else if reporter != nil {
-		reporterName = reporter.Name
+	// Optimize: Batch fetch users to reduce DB calls
+	userIDs := make([]uuid.UUID, 0, 2)
+	userIDs = append(userIDs, ticket.ReporterID)
+	if ticket.AssigneeUserID != nil {
+		userIDs = append(userIDs, *ticket.AssigneeUserID)
 	}
 
+	userMap := make(map[uuid.UUID]string)
+	if len(userIDs) > 0 {
+		users, err := h.userRepo.GetByIDs(r.Context(), userIDs)
+		if err != nil {
+			h.logger.Error("failed to get users", "error", err)
+			// continue without names
+		} else {
+			for _, u := range users {
+				userMap[u.ID] = u.Name
+			}
+		}
+	}
+
+	reporterName := userMap[ticket.ReporterID]
 	assigneeName := ""
 	if ticket.AssigneeUserID != nil {
-		assignee, err := h.userRepo.GetByID(r.Context(), *ticket.AssigneeUserID)
-		if err != nil {
-			h.logger.Error("failed to get assignee", "error", err)
-			// continue without assignee name
-		} else if assignee != nil {
-			assigneeName = assignee.Name
-		}
+		assigneeName = userMap[*ticket.AssigneeUserID]
 	}
 
 	files, err := h.service.ListTicketFiles(r.Context(), ticket.ID)

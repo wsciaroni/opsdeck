@@ -1012,6 +1012,68 @@ func TestGetTicketFile(t *testing.T) {
 	}
 }
 
+func TestGetTicket(t *testing.T) {
+	t.Run("Success - Get ticket with reporter and assignee", func(t *testing.T) {
+		mockService := new(MockTicketService)
+		mockOrgRepo := new(MockOrgRepo)
+		mockUserRepo := new(MockUserRepo)
+		h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+
+		r := chi.NewRouter()
+		r.Get("/tickets/{ticketID}", h.GetTicket)
+
+		orgID := uuid.New()
+		user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
+		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
+
+		ticketID := uuid.New()
+		reporterID := uuid.New()
+		assigneeID := uuid.New()
+		ticket := &domain.Ticket{
+			ID:             ticketID,
+			OrganizationID: orgID,
+			ReporterID:     reporterID,
+			AssigneeUserID: &assigneeID,
+			Title:          "Ticket",
+		}
+
+		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+		// Expect GetByIDs to be called with reporter and assignee IDs
+		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
+			// Order might vary, check containment
+			if len(ids) != 2 {
+				return false
+			}
+			hasReporter := ids[0] == reporterID || ids[1] == reporterID
+			hasAssignee := ids[0] == assigneeID || ids[1] == assigneeID
+			return hasReporter && hasAssignee
+		})).Return([]domain.User{
+			{ID: reporterID, Name: "Reporter Name"},
+			{ID: assigneeID, Name: "Assignee Name"},
+		}, nil)
+
+		mockService.On("ListTicketFiles", mock.Anything, ticketID).Return([]domain.File{}, nil)
+
+		req := httptest.NewRequest("GET", "/tickets/"+ticketID.String(), nil)
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp handler.TicketDetailResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, "Reporter Name", resp.ReporterName)
+		assert.Equal(t, "Assignee Name", resp.AssigneeName)
+		assert.Equal(t, ticketID, resp.ID)
+	})
+}
+
 // LargeString generates a large string
 func LargeString(size int) string {
 	return strings.Repeat("A", size)
