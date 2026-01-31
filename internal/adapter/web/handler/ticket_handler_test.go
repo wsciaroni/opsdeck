@@ -1116,3 +1116,109 @@ func TestUpdateTicket(t *testing.T) {
 		})
 	}
 }
+
+func TestGetTicket_CrossOrg(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Get("/tickets/{ticketID}", h.GetTicket)
+
+	// User belongs to Org A
+	user := &domain.User{ID: uuid.New()}
+	orgA := uuid.New()
+	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
+
+	// Ticket belongs to Org B
+	orgB := uuid.New()
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
+
+	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+	req := httptest.NewRequest("GET", "/tickets/"+ticketID.String(), nil)
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Should be NotFound (404) to prevent enumeration
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUpdateTicket_CrossOrg(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Patch("/tickets/{ticketID}", h.UpdateTicket)
+
+	// User belongs to Org A
+	user := &domain.User{ID: uuid.New()}
+	orgA := uuid.New()
+	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
+
+	// Ticket belongs to Org B
+	orgB := uuid.New()
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
+
+	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+	body := map[string]interface{}{
+		"title": "New Title",
+	}
+	bodyBytes, _ := json.Marshal(body)
+
+	req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Should be NotFound (404)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestGetTicketFile_CrossOrg(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Get("/tickets/files/{fileID}", h.GetTicketFile)
+
+	// User belongs to Org A
+	user := &domain.User{ID: uuid.New()}
+	orgA := uuid.New()
+	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
+
+	// Ticket belongs to Org B
+	orgB := uuid.New()
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
+
+	fileID := uuid.New()
+	file := &domain.File{ID: fileID, TicketID: ticketID, ContentType: "image/png"}
+
+	mockService.On("GetTicketFile", mock.Anything, fileID).Return(file, nil)
+	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+
+	req := httptest.NewRequest("GET", "/tickets/files/"+fileID.String(), nil)
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Should be NotFound (404)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
