@@ -1,4 +1,4 @@
-import { Plus, List, Layout, Search } from 'lucide-react';
+import { Plus, List, Layout, Search, X } from 'lucide-react';
 import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
@@ -70,15 +70,28 @@ export default function DashboardHeader({
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 </div>
+                <label htmlFor="search" className="sr-only">Search tickets</label>
                 <input
                     type="text"
                     name="search"
                     id="search"
-                    className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
+                    className="block w-full rounded-md border-gray-300 pl-10 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
                     placeholder="Search tickets..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
+                {search && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      type="button"
+                      onClick={() => setSearch('')}
+                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
             </div>
 
             <FilterPopover
