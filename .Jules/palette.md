@@ -27,3 +27,7 @@
 ## 2026-05-18 - Keyboard Shortcuts
 **Learning:** Adding keyboard shortcuts (like 'c' for Create) significantly speeds up power user workflows, but they must be implemented carefully to avoid triggering during normal typing (e.g., in inputs/textareas).
 **Action:** Always wrap global keydown listeners in checks for `tagName` (INPUT, TEXTAREA) and `isContentEditable`. Add tooltips or hints to UI elements to help users discover these shortcuts.
+
+## 2026-05-18 - Search Input Patterns
+**Learning:** Search inputs without a "Clear" button force users to manually delete text, which is tedious on mobile. Also, inputs often lack labels when designed with just icons.
+**Action:** Always include a hidden `<label>` for accessibility and a "Clear" (X) button that appears when text is present. Position the button absolutely within the input wrapper.
