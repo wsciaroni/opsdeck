@@ -112,7 +112,7 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isMember {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
 
@@ -764,7 +764,7 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isMember {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
 
@@ -845,7 +845,7 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isMember {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
 
