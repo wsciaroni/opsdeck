@@ -8,15 +8,15 @@ import (
 
 // Organization represents a workspace or tenant.
 type Organization struct {
-	ID               uuid.UUID `json:"id"`
-	Name             string    `json:"name"`
-	Slug             string    `json:"slug"`
-	ShareLinkEnabled bool      `json:"share_link_enabled"`
-	ShareLinkToken   *string   `json:"share_link_token"`
+	ID                uuid.UUID `json:"id"`
+	Name              string    `json:"name"`
+	Slug              string    `json:"slug"`
+	ShareLinkEnabled  bool      `json:"share_link_enabled"`
+	ShareLinkToken    *string   `json:"share_link_token"`
 	PublicViewEnabled bool      `json:"public_view_enabled"`
 	PublicViewToken   *string   `json:"public_view_token"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // OrganizationMember represents the link between a user and an organization.
