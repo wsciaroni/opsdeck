@@ -60,13 +60,22 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
       const selectedFiles = Array.from(e.target.files);
       const validFiles: File[] = [];
       const MAX_SIZE = 32 * 1024 * 1024; // 32MB
+      // Allowed extensions matching the accept attribute
+      const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
 
       selectedFiles.forEach(file => {
         if (file.size > MAX_SIZE) {
           toast.error(`File ${file.name} is too large (max 32MB)`);
-        } else {
-          validFiles.push(file);
+          return;
         }
+
+        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+        if (!ALLOWED_EXTENSIONS.includes(fileExtension) && file.name.includes('.')) {
+             toast.error(`File type ${fileExtension} is not allowed`);
+             return;
+        }
+
+        validFiles.push(file);
       });
 
       if (validFiles.length > 0) {
