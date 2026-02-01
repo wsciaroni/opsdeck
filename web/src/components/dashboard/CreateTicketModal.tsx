@@ -57,7 +57,21 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles(Array.from(e.target.files));
+      const selectedFiles = Array.from(e.target.files);
+      const validFiles: File[] = [];
+      const MAX_SIZE = 32 * 1024 * 1024; // 32MB
+
+      selectedFiles.forEach(file => {
+        if (file.size > MAX_SIZE) {
+          toast.error(`File ${file.name} is too large (max 32MB)`);
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (validFiles.length > 0) {
+        setFiles(validFiles);
+      }
     }
   };
 
