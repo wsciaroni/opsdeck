@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { Paperclip, Loader2 } from 'lucide-react';
+import { Paperclip, Loader2, X } from 'lucide-react';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
     priority_id: 'medium',
     sensitive: false,
   });
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   const mutation = useMutation({
     mutationFn: createTicket,
@@ -27,7 +27,7 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       onClose();
       setNewTicket({ title: '', description: '', priority_id: 'medium', sensitive: false });
-      setFiles(null);
+      setFiles([]);
       toast.success("Ticket created!");
     },
   });
@@ -57,8 +57,12 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles(e.target.files);
+      setFiles(Array.from(e.target.files));
     }
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setFiles(files.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -140,12 +144,22 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                                 <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
                               </label>
                             </div>
-                            {files && files.length > 0 && (
+                            {files.length > 0 && (
                               <ul className="mt-3 space-y-1">
-                                {Array.from(files).map((file, index) => (
-                                  <li key={index} className="text-sm text-gray-500 flex items-center">
-                                    <Paperclip className="h-3 w-3 mr-2 text-gray-400" />
-                                    {file.name}
+                                {files.map((file, index) => (
+                                  <li key={index} className="text-sm text-gray-500 flex items-center justify-between py-1">
+                                    <div className="flex items-center min-w-0">
+                                      <Paperclip className="h-3 w-3 mr-2 text-gray-400 flex-shrink-0" />
+                                      <span className="truncate">{file.name}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFile(index)}
+                                      className="ml-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-600"
+                                      aria-label={`Remove ${file.name}`}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
                                   </li>
                                 ))}
                               </ul>
