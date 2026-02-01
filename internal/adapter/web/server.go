@@ -31,7 +31,9 @@ func NewRouter(
 	r.Use(appMiddleware.SecurityHeaders)
 
 	// Auth Routes
-	r.Get("/auth/login", authHandler.Login)
+	// Rate limit login initiation to 20 requests per minute per IP to prevent abuse/DoS
+	loginRL := appMiddleware.NewRateLimiter(20, time.Minute)
+	r.With(loginRL.Limit).Get("/auth/login", authHandler.Login)
 	r.Get("/auth/callback", authHandler.Callback)
 	r.Post("/auth/logout", authHandler.Logout)
 

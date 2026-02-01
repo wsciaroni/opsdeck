@@ -26,3 +26,8 @@
 **Vulnerability:** The `CreatePublicTicket` and `CreateTicket` endpoints allowed unlimited request body sizes, enabling DoS attacks via massive file uploads or JSON payloads. `ParseMultipartForm` limits memory usage but not the total read size (files spill to disk).
 **Learning:** `r.ParseMultipartForm(maxMemory)` only limits the amount of memory used for parsing parts. It does **not** prevent the server from reading the entire request body. To prevent DoS, `http.MaxBytesReader` must be used to limit the total read size.
 **Prevention:** Wrap `r.Body` with `http.MaxBytesReader(w, r.Body, MaxSize)` at the start of handlers dealing with uploads or untrusted input.
+
+## 2026-02-05 - Missing Rate Limiting on Login Initialization
+**Vulnerability:** The `/auth/login` endpoint, which initiates the OIDC flow, was not rate-limited. This could allow an attacker to launch a DoS attack by exhausting server resources (state generation) or triggering excessive upstream OIDC requests.
+**Learning:** Authentication initiation endpoints are often overlooked for rate limiting because they are "public" by necessity, but they can be abused to cause resource exhaustion.
+**Prevention:** Applied the `RateLimiter` middleware to the `/auth/login` endpoint with a limit of 20 requests per minute per IP.

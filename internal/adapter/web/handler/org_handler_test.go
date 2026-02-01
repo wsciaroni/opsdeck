@@ -117,7 +117,7 @@ func TestGetPublicViewSettings(t *testing.T) {
 
 		token := "some-token"
 		org := &domain.Organization{
-			ID:               orgID,
+			ID:                orgID,
 			PublicViewEnabled: true,
 			PublicViewToken:   &token,
 		}
@@ -161,7 +161,7 @@ func TestUpdatePublicViewSettings(t *testing.T) {
 		user := &domain.User{ID: userID}
 
 		org := &domain.Organization{
-			ID:               orgID,
+			ID:                orgID,
 			PublicViewEnabled: false,
 			PublicViewToken:   nil,
 		}
@@ -202,7 +202,7 @@ func TestRegeneratePublicViewToken(t *testing.T) {
 
 		oldToken := "old-token"
 		org := &domain.Organization{
-			ID:               orgID,
+			ID:                orgID,
 			PublicViewEnabled: true,
 			PublicViewToken:   &oldToken,
 		}

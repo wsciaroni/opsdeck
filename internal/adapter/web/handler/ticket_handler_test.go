@@ -1093,8 +1093,8 @@ func TestUpdateTicket(t *testing.T) {
 		setupMocks     func(*MockTicketService, *MockOrgRepo)
 	}{
 		{
-			name: "DoS Prevention - Rejects body too large",
-			body: &LargeReader{Size: handler.MaxRequestSize + 1024},
+			name:           "DoS Prevention - Rejects body too large",
+			body:           &LargeReader{Size: handler.MaxRequestSize + 1024},
 			expectedStatus: http.StatusRequestEntityTooLarge,
 		},
 		{
