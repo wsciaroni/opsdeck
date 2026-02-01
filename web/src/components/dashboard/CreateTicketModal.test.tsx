@@ -65,4 +65,27 @@ describe('CreateTicketModal', () => {
         expect(formData.get('files')).toBeInstanceOf(File);
         expect((formData.get('files') as File).name).toBe('hello.png');
     });
+
+    it('allows removing an uploaded file', async () => {
+        const onCloseMock = vi.fn();
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <CreateTicketModal isOpen={true} onClose={onCloseMock} organizationId="org1" />
+            </QueryClientProvider>
+        );
+
+        // Upload file
+        const file = new File(['hello'], 'hello.png', { type: 'image/png' });
+        const input = screen.getByLabelText('Upload files');
+        fireEvent.change(input, { target: { files: [file] } });
+
+        expect(screen.getByText('hello.png')).toBeInTheDocument();
+
+        // Remove file
+        const removeButton = screen.getByLabelText('Remove hello.png');
+        fireEvent.click(removeButton);
+
+        expect(screen.queryByText('hello.png')).not.toBeInTheDocument();
+    });
 });
