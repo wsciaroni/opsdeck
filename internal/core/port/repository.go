@@ -26,6 +26,7 @@ type OrganizationRepository interface {
 	AddMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.UserMembership, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]domain.Member, error)
+	GetMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (string, error)
 	UpdateMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID, role string) error
 	RemoveMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) error
 }

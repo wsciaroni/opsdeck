@@ -217,6 +217,23 @@ func (r *OrganizationRepository) ListMembers(ctx context.Context, orgID uuid.UUI
 	return members, nil
 }
 
+func (r *OrganizationRepository) GetMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (string, error) {
+	query := `
+		SELECT role
+		FROM organization_members
+		WHERE organization_id = $1 AND user_id = $2
+	`
+	var role string
+	err := r.db.QueryRow(ctx, query, orgID, userID).Scan(&role)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to get member role: %w", err)
+	}
+	return role, nil
+}
+
 func (r *OrganizationRepository) RemoveMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) error {
 	query := `
 		DELETE FROM organization_members
