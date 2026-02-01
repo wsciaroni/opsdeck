@@ -53,13 +53,14 @@ type CreatePublicTicketRequest struct {
 }
 
 type UpdateTicketRequest struct {
-	Title       *string    `json:"title"`
-	Description *string    `json:"description"`
-	Priority    *string    `json:"priority_id"`
-	Status      *string    `json:"status_id"`
-	AssigneeID  *uuid.UUID `json:"assignee_id"`
-	Location    *string    `json:"location"`
-	Sensitive   *bool      `json:"sensitive"`
+	Title              *string    `json:"title"`
+	Description        *string    `json:"description"`
+	Priority           *string    `json:"priority_id"`
+	Status             *string    `json:"status_id"`
+	AssigneeID         *uuid.UUID `json:"assignee_id"`
+	AssigneeCustomName *string    `json:"assignee_custom_name"`
+	Location           *string    `json:"location"`
+	Sensitive          *bool      `json:"sensitive"`
 }
 
 func NewTicketHandler(service port.TicketService, orgRepo port.OrganizationRepository, userRepo port.UserRepository, logger *slog.Logger) *TicketHandler {
@@ -133,6 +134,8 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 	assigneeName := ""
 	if ticket.AssigneeUserID != nil {
 		assigneeName = userMap[*ticket.AssigneeUserID]
+	} else if ticket.AssigneeCustomName != nil {
+		assigneeName = *ticket.AssigneeCustomName
 	}
 
 	files, err := h.service.ListTicketFiles(r.Context(), ticket.ID)
@@ -660,6 +663,8 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		assigneeName := ""
 		if t.AssigneeUserID != nil {
 			assigneeName = memberMap[*t.AssigneeUserID]
+		} else if t.AssigneeCustomName != nil {
+			assigneeName = *t.AssigneeCustomName
 		}
 		reporterName := memberMap[t.ReporterID]
 
@@ -739,13 +744,14 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := port.UpdateTicketCmd{
-		StatusID:       req.Status,
-		PriorityID:     req.Priority,
-		AssigneeUserID: req.AssigneeID,
-		Title:          req.Title,
-		Description:    req.Description,
-		Location:       req.Location,
-		Sensitive:      req.Sensitive,
+		StatusID:           req.Status,
+		PriorityID:         req.Priority,
+		AssigneeUserID:     req.AssigneeID,
+		AssigneeCustomName: req.AssigneeCustomName,
+		Title:              req.Title,
+		Description:        req.Description,
+		Location:           req.Location,
+		Sensitive:          req.Sensitive,
 	}
 
 	updatedTicket, err := h.service.UpdateTicket(r.Context(), id, cmd)
