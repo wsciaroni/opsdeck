@@ -155,7 +155,15 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                               <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 flex items-center gap-2">
                                 <Paperclip className="h-4 w-4" />
                                 <span>Upload files</span>
-                                <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
+                                <input
+                                  id="file-upload"
+                                  name="file-upload"
+                                  type="file"
+                                  className="sr-only"
+                                  multiple
+                                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                                  onChange={handleFileChange}
+                                />
                               </label>
                             </div>
                             {files.length > 0 && (
