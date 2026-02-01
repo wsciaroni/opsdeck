@@ -12,12 +12,18 @@ import (
 
 // TicketService implements business logic for ticket management.
 type TicketService struct {
-	repo port.TicketRepository
+	repo                port.TicketRepository
+	userRepo            port.UserRepository
+	notificationService port.NotificationService
 }
 
 // NewTicketService creates a new TicketService.
-func NewTicketService(repo port.TicketRepository) *TicketService {
-	return &TicketService{repo: repo}
+func NewTicketService(repo port.TicketRepository, userRepo port.UserRepository, notificationService port.NotificationService) *TicketService {
+	return &TicketService{
+		repo:                repo,
+		userRepo:            userRepo,
+		notificationService: notificationService,
+	}
 }
 
 // GetTicket retrieves a ticket by its ID.
@@ -99,10 +105,14 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port
 		}
 		ticket.PriorityID = *cmd.PriorityID
 	}
+	shouldNotifyAssignment := false
 	if cmd.AssigneeUserID != nil {
 		if *cmd.AssigneeUserID == uuid.Nil {
 			ticket.AssigneeUserID = nil
 		} else {
+			if ticket.AssigneeUserID == nil || *ticket.AssigneeUserID != *cmd.AssigneeUserID {
+				shouldNotifyAssignment = true
+			}
 			ticket.AssigneeUserID = cmd.AssigneeUserID
 		}
 	}
@@ -132,6 +142,14 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port
 
 	if err := s.repo.Update(ctx, ticket); err != nil {
 		return nil, fmt.Errorf("failed to update ticket: %w", err)
+	}
+
+	if shouldNotifyAssignment && ticket.AssigneeUserID != nil {
+		user, err := s.userRepo.GetByID(ctx, *ticket.AssigneeUserID)
+		if err == nil && user != nil {
+			// Don't fail the update if notification fails
+			_ = s.notificationService.NotifyTicketAssigned(ctx, user.Email, ticket.Title, ticket.ID)
+		}
 	}
 
 	return ticket, nil

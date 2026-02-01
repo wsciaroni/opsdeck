@@ -17,10 +17,25 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
 )
 
+type MockNotificationService struct {
+	mock.Mock
+}
+
+func (m *MockNotificationService) NotifyUserAddedToOrg(ctx context.Context, email string, orgName string) error {
+	args := m.Called(ctx, email, orgName)
+	return args.Error(0)
+}
+
+func (m *MockNotificationService) NotifyTicketAssigned(ctx context.Context, email string, ticketTitle string, ticketID uuid.UUID) error {
+	args := m.Called(ctx, email, ticketTitle, ticketID)
+	return args.Error(0)
+}
+
 func TestGetShareSettings(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Get("/organizations/{id}/share", h.GetShareSettings)
@@ -65,7 +80,8 @@ func TestGetShareSettings(t *testing.T) {
 func TestUpdateShareSettings(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Put("/organizations/{id}/share", h.UpdateShareSettings)
@@ -105,7 +121,8 @@ func TestUpdateShareSettings(t *testing.T) {
 func TestGetPublicViewSettings(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Get("/organizations/{id}/public-view", h.GetPublicViewSettings)
@@ -150,7 +167,8 @@ func TestGetPublicViewSettings(t *testing.T) {
 func TestUpdatePublicViewSettings(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Put("/organizations/{id}/public-view", h.UpdatePublicViewSettings)
@@ -190,7 +208,8 @@ func TestUpdatePublicViewSettings(t *testing.T) {
 func TestRegeneratePublicViewToken(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Post("/organizations/{id}/public-view/regenerate", h.RegeneratePublicViewToken)
@@ -229,7 +248,8 @@ func TestRegeneratePublicViewToken(t *testing.T) {
 func TestRegenerateShareToken(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Post("/organizations/{id}/share/regenerate", h.RegenerateShareToken)
@@ -268,7 +288,8 @@ func TestRegenerateShareToken(t *testing.T) {
 func TestUpdateMemberRole(t *testing.T) {
 	mockOrgRepo := new(MockOrgRepo)
 	mockUserRepo := new(MockUserRepo)
-	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, nil)
+	mockNotificationService := new(MockNotificationService)
+	h := handler.NewOrgHandler(mockOrgRepo, mockUserRepo, mockNotificationService, nil)
 
 	r := chi.NewRouter()
 	r.Put("/organizations/{id}/members/{userID}/role", h.UpdateMemberRole)

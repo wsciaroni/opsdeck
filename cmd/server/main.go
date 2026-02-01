@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wsciaroni/opsdeck/internal/adapter/auth/google"
+	"github.com/wsciaroni/opsdeck/internal/adapter/notification"
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage"
 	"github.com/wsciaroni/opsdeck/internal/adapter/storage/postgres"
 	"github.com/wsciaroni/opsdeck/internal/adapter/web"
@@ -102,9 +103,12 @@ func main() {
 	authService := service.NewAuthService(repo, orgRepo, oidcProvider, logger)
 	authHandler := handler.NewAuthHandler(authService, orgRepo, logger, sessionSecret)
 
+	// Init Notification
+	notificationService := notification.NewEmailNotificationService(logger)
+
 	// Init Ticket
 	ticketRepo := postgres.NewTicketRepository(pool)
-	ticketService := service.NewTicketService(ticketRepo)
+	ticketService := service.NewTicketService(ticketRepo, repo, notificationService)
 	ticketHandler := handler.NewTicketHandler(ticketService, orgRepo, repo, logger)
 
 	// Init Comment
@@ -113,7 +117,7 @@ func main() {
 	commentHandler := handler.NewCommentHandler(commentService, ticketService, repo, orgRepo, logger)
 
 	// Init Org
-	orgHandler := handler.NewOrgHandler(orgRepo, repo, logger)
+	orgHandler := handler.NewOrgHandler(orgRepo, repo, notificationService, logger)
 
 	// Init Public View
 	publicViewHandler := handler.NewPublicViewHandler(orgRepo, ticketService, commentService, repo, logger)
