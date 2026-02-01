@@ -111,6 +111,11 @@ func (m *MockOrganizationRepository) ListMembers(ctx context.Context, orgID uuid
 	return args.Get(0).([]domain.Member), args.Error(1)
 }
 
+func (m *MockOrganizationRepository) GetMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (string, error) {
+	args := m.Called(ctx, orgID, userID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockOrganizationRepository) RemoveMember(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) error {
 	args := m.Called(ctx, orgID, userID)
 	return args.Error(0)

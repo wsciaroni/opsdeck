@@ -96,22 +96,15 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	// Optimize: Use direct role lookup to verify membership without fetching all orgs
+	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	isMember := false
-	for _, m := range memberships {
-		if m.ID == ticket.OrganizationID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if role == "" {
 		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
@@ -502,23 +495,15 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Security Check: Verify user belongs to the organization
-	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	// Security Check: Verify user belongs to the organization (Optimized)
+	role, err := h.orgRepo.GetMemberRole(r.Context(), req.OrganizationID, user.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	isMember := false
-	for _, m := range memberships {
-		if m.ID == req.OrganizationID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if role == "" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -576,23 +561,15 @@ func (h *TicketHandler) ListTickets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Security Check: Verify user belongs to the organization
-	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	// Security Check: Verify user belongs to the organization (Optimized)
+	role, err := h.orgRepo.GetMemberRole(r.Context(), orgID, user.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	isMember := false
-	for _, m := range memberships {
-		if m.ID == orgID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if role == "" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -748,22 +725,15 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	// Optimize: Use direct role lookup to verify membership without fetching all orgs
+	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	isMember := false
-	for _, m := range memberships {
-		if m.ID == ticket.OrganizationID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if role == "" {
 		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
@@ -829,22 +799,15 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	memberships, err := h.orgRepo.ListByUser(r.Context(), user.ID)
+	// Optimize: Use direct role lookup to verify membership without fetching all orgs
+	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	isMember := false
-	for _, m := range memberships {
-		if m.ID == ticket.OrganizationID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if role == "" {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}

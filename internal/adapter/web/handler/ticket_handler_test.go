@@ -160,6 +160,11 @@ func (m *MockOrgRepo) ListMembers(ctx context.Context, orgID uuid.UUID) ([]domai
 	return args.Get(0).([]domain.Member), args.Error(1)
 }
 
+func (m *MockOrgRepo) GetMemberRole(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (string, error) {
+	args := m.Called(ctx, orgID, userID)
+	return args.String(0), args.Error(1)
+}
+
 func (m *MockOrgRepo) RemoveMember(ctx context.Context, orgID, userID uuid.UUID) error {
 	return m.Called(ctx, orgID, userID).Error(0)
 }
@@ -663,10 +668,7 @@ func TestCreateTicket(t *testing.T) {
 		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
 
-		memberships := []domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}},
-		}
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		r.ServeHTTP(w, req)
 
@@ -682,9 +684,7 @@ func TestCreateTicket(t *testing.T) {
 
 		user := &domain.User{ID: uuid.New()}
 		orgID := uuid.New()
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
-
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		ticket := &domain.Ticket{ID: uuid.New(), Title: "Title", Description: "Desc", PriorityID: "medium"}
 
@@ -727,16 +727,9 @@ func TestListTickets(t *testing.T) {
 		}
 		orgID := uuid.New()
 
-		memberships := []domain.UserMembership{
-			{
-				Organization: domain.Organization{ID: orgID},
-				Role:         "member",
-			},
-		}
-
 		tickets := []domain.Ticket{}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		// Expect ListTickets with ExcludeDescription: true
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
@@ -777,13 +770,6 @@ func TestListTickets(t *testing.T) {
 		assigneeID := uuid.New()
 		reporterID := uuid.New()
 
-		memberships := []domain.UserMembership{
-			{
-				Organization: domain.Organization{ID: orgID},
-				Role:         "member",
-			},
-		}
-
 		tickets := []domain.Ticket{
 			{
 				ID:             uuid.New(),
@@ -797,7 +783,7 @@ func TestListTickets(t *testing.T) {
 			},
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		// Expect ListTickets with ExcludeDescription: true
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
@@ -846,16 +832,9 @@ func TestListTickets(t *testing.T) {
 		}
 		orgID := uuid.New()
 
-		memberships := []domain.UserMembership{
-			{
-				Organization: domain.Organization{ID: orgID},
-				Role:         "member",
-			},
-		}
-
 		tickets := []domain.Ticket{}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		priority := "high"
 		search := "urgent"
@@ -895,9 +874,8 @@ func TestListTickets(t *testing.T) {
 
 		user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
 		orgID := uuid.New()
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		// Expect explicit statuses
 		mockService.On("ListTickets", mock.Anything, port.TicketFilter{
@@ -931,7 +909,6 @@ func TestGetTicketFile(t *testing.T) {
 
 	orgID := uuid.New()
 	user := &domain.User{ID: uuid.New()}
-	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
 
 	ticketID := uuid.New()
 	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
@@ -992,7 +969,7 @@ func TestGetTicketFile(t *testing.T) {
 
 			mockService.On("GetTicketFile", mock.Anything, fileID).Return(file, nil).Once()
 			mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Once()
-			mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil).Once()
+			mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Once()
 
 			req := httptest.NewRequest("GET", "/tickets/files/"+fileID.String(), nil)
 			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
@@ -1024,7 +1001,6 @@ func TestGetTicket(t *testing.T) {
 
 		orgID := uuid.New()
 		user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
-		memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}, Role: "member"}}
 
 		ticketID := uuid.New()
 		reporterID := uuid.New()
@@ -1038,7 +1014,7 @@ func TestGetTicket(t *testing.T) {
 		}
 
 		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-		mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 
 		// Expect GetByIDs to be called with reporter and assignee IDs
 		mockUserRepo.On("GetByIDs", mock.Anything, mock.MatchedBy(func(ids []uuid.UUID) bool {
@@ -1137,8 +1113,7 @@ func TestUpdateTicket(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
 				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-				memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgID}}}
-				mo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil)
 			},
 		},
@@ -1189,16 +1164,14 @@ func TestGetTicket_CrossOrg(t *testing.T) {
 
 	// User belongs to Org A
 	user := &domain.User{ID: uuid.New()}
-	orgA := uuid.New()
-	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
-
 	// Ticket belongs to Org B
 	orgB := uuid.New()
 	ticketID := uuid.New()
 	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
 
 	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+	// Return empty role for Org B
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgB, user.ID).Return("", nil)
 
 	req := httptest.NewRequest("GET", "/tickets/"+ticketID.String(), nil)
 	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
@@ -1221,16 +1194,14 @@ func TestUpdateTicket_CrossOrg(t *testing.T) {
 
 	// User belongs to Org A
 	user := &domain.User{ID: uuid.New()}
-	orgA := uuid.New()
-	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
-
 	// Ticket belongs to Org B
 	orgB := uuid.New()
 	ticketID := uuid.New()
 	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
 
 	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+	// Return empty role for Org B
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgB, user.ID).Return("", nil)
 
 	body := map[string]interface{}{
 		"title": "New Title",
@@ -1259,9 +1230,6 @@ func TestGetTicketFile_CrossOrg(t *testing.T) {
 
 	// User belongs to Org A
 	user := &domain.User{ID: uuid.New()}
-	orgA := uuid.New()
-	memberships := []domain.UserMembership{{Organization: domain.Organization{ID: orgA}, Role: "member"}}
-
 	// Ticket belongs to Org B
 	orgB := uuid.New()
 	ticketID := uuid.New()
@@ -1272,7 +1240,8 @@ func TestGetTicketFile_CrossOrg(t *testing.T) {
 
 	mockService.On("GetTicketFile", mock.Anything, fileID).Return(file, nil)
 	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
-	mockOrgRepo.On("ListByUser", mock.Anything, user.ID).Return(memberships, nil)
+	// Return empty role for Org B
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgB, user.ID).Return("", nil)
 
 	req := httptest.NewRequest("GET", "/tickets/files/"+fileID.String(), nil)
 	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
