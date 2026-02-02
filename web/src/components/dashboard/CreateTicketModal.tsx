@@ -4,6 +4,7 @@ import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { Paperclip, Loader2, X } from 'lucide-react';
+import { formatBytes } from '../../utils';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -181,7 +182,9 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                                   <li key={index} className="text-sm text-gray-500 flex items-center justify-between py-1">
                                     <div className="flex items-center min-w-0">
                                       <Paperclip className="h-3 w-3 mr-2 text-gray-400 flex-shrink-0" />
-                                      <span className="truncate">{file.name}</span>
+                                      <span className="truncate">
+                                        {file.name} <span className="text-gray-400 text-xs ml-1">({formatBytes(file.size)})</span>
+                                      </span>
                                     </div>
                                     <button
                                       type="button"
