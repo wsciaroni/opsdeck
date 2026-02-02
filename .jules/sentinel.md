@@ -31,3 +31,8 @@
 **Vulnerability:** The `/auth/login` endpoint, which initiates the OIDC flow, was not rate-limited. This could allow an attacker to launch a DoS attack by exhausting server resources (state generation) or triggering excessive upstream OIDC requests.
 **Learning:** Authentication initiation endpoints are often overlooked for rate limiting because they are "public" by necessity, but they can be abused to cause resource exhaustion.
 **Prevention:** Applied the `RateLimiter` middleware to the `/auth/login` endpoint with a limit of 20 requests per minute per IP.
+
+## 2026-02-06 - Persistent Session Hijacking via Non-Expiring Signed Tokens
+**Vulnerability:** The session signing mechanism (`SignSessionID`) verified the authenticity of the session ID but not its age. A stolen cookie could be used indefinitely to impersonate the user, even if the client-side cookie expired.
+**Learning:** Cryptographic signatures only prove *who* signed the data, not *when* or if it's still valid. Stateful expiration (in DB) or stateless expiration (in token payload) is mandatory.
+**Prevention:** Included an expiration timestamp in the signed payload (`id.expires_at.signature`) and enforced it in the `AuthMiddleware`. This ensures tokens automatically become invalid after the set duration (e.g., 24 hours).

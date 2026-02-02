@@ -105,7 +105,8 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	signedSessionID := middleware.SignSessionID(sessionID, h.secret)
+	expiresAt := time.Now().Add(24 * time.Hour)
+	signedSessionID := middleware.SignSessionID(sessionID, expiresAt, h.secret)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
@@ -114,7 +115,7 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(24 * time.Hour), // Set a reasonable expiration
+		Expires:  expiresAt,
 	})
 
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
