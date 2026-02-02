@@ -7,7 +7,9 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
@@ -32,12 +34,13 @@ func NewAuthMiddleware(userRepo port.UserRepository, logger *slog.Logger, secret
 	}
 }
 
-// SignSessionID signs the session ID with the secret.
-func SignSessionID(id string, secret []byte) string {
+// SignSessionID signs the session ID with the secret and expiration.
+func SignSessionID(id string, expiresAt time.Time, secret []byte) string {
+	expStr := strconv.FormatInt(expiresAt.Unix(), 10)
 	mac := hmac.New(sha256.New, secret)
-	mac.Write([]byte(id))
+	mac.Write([]byte(id + "." + expStr))
 	signature := hex.EncodeToString(mac.Sum(nil))
-	return id + "." + signature
+	return id + "." + expStr + "." + signature
 }
 
 func (m *AuthMiddleware) Protect(next http.Handler) http.Handler {
@@ -50,20 +53,34 @@ func (m *AuthMiddleware) Protect(next http.Handler) http.Handler {
 		}
 
 		parts := strings.Split(cookie.Value, ".")
-		if len(parts) != 2 {
+		if len(parts) != 3 {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		id := parts[0]
-		signature := parts[1]
+		expStr := parts[1]
+		signature := parts[2]
 
 		mac := hmac.New(sha256.New, m.secret)
-		mac.Write([]byte(id))
+		mac.Write([]byte(id + "." + expStr))
 		expectedSignature := hex.EncodeToString(mac.Sum(nil))
 
 		if !hmac.Equal([]byte(signature), []byte(expectedSignature)) {
 			m.logger.Warn("invalid session signature", "cookie", cookie.Value)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		exp, err := strconv.ParseInt(expStr, 10, 64)
+		if err != nil {
+			m.logger.Warn("invalid session expiration format", "cookie", cookie.Value)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if time.Now().Unix() > exp {
+			m.logger.Warn("session expired", "cookie", cookie.Value)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
