@@ -31,3 +31,7 @@
 ## 2026-05-18 - Search Input Patterns
 **Learning:** Search inputs without a "Clear" button force users to manually delete text, which is tedious on mobile. Also, inputs often lack labels when designed with just icons.
 **Action:** Always include a hidden `<label>` for accessibility and a "Clear" (X) button that appears when text is present. Position the button absolutely within the input wrapper.
+
+## 2026-05-19 - File Size Formatting
+**Learning:** Displaying raw bytes (e.g., "1536 Bytes") or hardcoded KB values (e.g., "1536.00 KB") is user-hostile, especially on mobile where data context matters.
+**Action:** Use a reusable `formatBytes` utility across the application to consistently display human-readable file sizes (e.g., "1.5 KB", "5 MB").

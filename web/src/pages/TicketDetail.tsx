@@ -4,6 +4,7 @@ import { getTicket, updateTicket } from '../api/tickets';
 import { getMembers } from '../api/organizations';
 import TicketComments from '../components/TicketComments';
 import { ArrowLeft, Lock, Paperclip } from 'lucide-react';
+import { formatBytes } from '../utils';
 import type { Ticket } from '../types';
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
@@ -209,7 +210,7 @@ export default function TicketDetail() {
                             <span className="absolute inset-0" aria-hidden="true" />
                             <p className="text-sm font-medium text-gray-900">{file.filename}</p>
                             <p className="truncate text-sm text-gray-500">
-                              {(file.size / 1024).toFixed(2)} KB
+                              {formatBytes(file.size)}
                             </p>
                           </a>
                         </div>
