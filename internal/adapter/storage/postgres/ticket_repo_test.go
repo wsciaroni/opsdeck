@@ -174,3 +174,70 @@ func TestTicketRepository_List(t *testing.T) {
 		assert.Equal(t, ticket1.ID, tickets[0].ID)
 	})
 }
+
+func TestTicketRepository_AddFiles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set")
+	}
+
+	ctx := context.Background()
+
+	// Run migrations
+	if err := postgres.RunMigrations(ctx, dbURL); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Skip("database not available")
+	}
+	defer pool.Close()
+
+	// Clear tables
+	_, err = pool.Exec(ctx, "TRUNCATE tickets, users, organizations CASCADE")
+	require.NoError(t, err)
+
+	repo := postgres.NewTicketRepository(pool)
+	userRepo := postgres.NewUserRepository(pool)
+	orgRepo := postgres.NewOrganizationRepository(pool)
+
+	// Setup Data
+	user := &domain.User{ID: uuid.New(), Email: "test@example.com", Role: domain.RoleAdmin}
+	require.NoError(t, userRepo.Create(ctx, user))
+
+	org := &domain.Organization{ID: uuid.New(), Name: "Org", Slug: "org"}
+	require.NoError(t, orgRepo.Create(ctx, org))
+
+	ticket := &domain.Ticket{
+		OrganizationID: org.ID,
+		ReporterID:     user.ID,
+		Title:          "Ticket",
+		StatusID:       "new",
+		PriorityID:     "low",
+	}
+	require.NoError(t, repo.Create(ctx, ticket))
+
+	t.Run("AddFiles Batch", func(t *testing.T) {
+		files := []domain.File{
+			{TicketID: ticket.ID, Filename: "f1.txt", ContentType: "text/plain", Size: 10, Data: []byte("content1")},
+			{TicketID: ticket.ID, Filename: "f2.txt", ContentType: "text/plain", Size: 20, Data: []byte("content2")},
+			{TicketID: ticket.ID, Filename: "f3.txt", ContentType: "text/plain", Size: 30, Data: []byte("content3")},
+		}
+
+		err := repo.AddFiles(ctx, files)
+		require.NoError(t, err)
+
+		// Verify using ListFiles
+		fetchedFiles, err := repo.ListFiles(ctx, ticket.ID)
+		require.NoError(t, err)
+		assert.Len(t, fetchedFiles, 3)
+		assert.Equal(t, "f1.txt", fetchedFiles[0].Filename)
+		assert.Equal(t, "f2.txt", fetchedFiles[1].Filename)
+		assert.Equal(t, "f3.txt", fetchedFiles[2].Filename)
+	})
+}
