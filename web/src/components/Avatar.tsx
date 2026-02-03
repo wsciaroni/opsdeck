@@ -19,15 +19,39 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
-// Define the avatar service URL as a constant
-const AVATAR_SERVICE_URL = 'https://ui-avatars.com/api/';
+const getBackgroundColor = (name: string) => {
+  const colors = [
+    'bg-red-500',
+    'bg-orange-500',
+    'bg-amber-500',
+    'bg-yellow-500',
+    'bg-lime-500',
+    'bg-green-500',
+    'bg-emerald-500',
+    'bg-teal-500',
+    'bg-cyan-500',
+    'bg-sky-500',
+    'bg-blue-500',
+    'bg-indigo-500',
+    'bg-violet-500',
+    'bg-purple-500',
+    'bg-fuchsia-500',
+    'bg-pink-500',
+    'bg-rose-500',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function Avatar({ src, alt, name, className }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
-  const [uiAvatarError, setUiAvatarError] = useState(false);
 
   const showOriginal = src && !imgError;
-  const showUiAvatar = !showOriginal && name && !uiAvatarError;
+  // If no image or image failed, and we have a name, show initials
+  const showInitials = !showOriginal && name;
 
   if (showOriginal) {
     return (
@@ -41,24 +65,22 @@ export default function Avatar({ src, alt, name, className }: AvatarProps) {
     );
   }
 
-  if (showUiAvatar) {
-    // Use initials to avoid sending full PII to third-party service
+  if (showInitials) {
     const initials = getInitials(name!);
-
-    // Construct URL safely using URL API
-    const url = new URL(AVATAR_SERVICE_URL);
-    url.searchParams.set('name', initials);
-    url.searchParams.set('background', 'random');
+    const bgColor = getBackgroundColor(name!);
 
     return (
-        <img
-            className={clsx("object-cover", className)}
-            src={url.toString()}
-            alt={alt || name}
-            onError={() => setUiAvatarError(true)}
-            referrerPolicy="no-referrer"
-        />
-    )
+      <div
+        className={clsx(
+          "flex items-center justify-center text-white font-medium select-none",
+          bgColor,
+          className
+        )}
+        aria-label={alt || name}
+      >
+        <span className="text-[40%] leading-none">{initials}</span>
+      </div>
+    );
   }
 
   return (

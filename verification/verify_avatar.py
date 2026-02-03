@@ -20,11 +20,17 @@ def run(playwright):
     # Wait for the avatar in the header.
     user_menu_button = page.get_by_role("button", name="Open user menu")
 
-    # Inside it, there should be an img.
-    avatar_img = user_menu_button.locator("img")
+    # Now that we are using local DIV fallback, we shouldn't look for an img tag if it falls back.
+    # The component structure:
+    # If showOriginal -> img
+    # If showInitials -> div with span inside
 
-    # Expect it to eventually point to ui-avatars with INITIALS "TU" (Test User)
-    expect(avatar_img).to_have_attribute("src", "https://ui-avatars.com/api/?name=TU&background=random")
+    # Check for the text "TU" inside the button
+    expect(user_menu_button).to_contain_text("TU")
+
+    # Check that it is NOT an image tag
+    avatar_img = user_menu_button.locator("img")
+    expect(avatar_img).to_have_count(0)
 
     # Take screenshot
     page.screenshot(path="/home/jules/verification/verification.png")
