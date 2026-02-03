@@ -50,13 +50,14 @@ func (s *TicketService) CreateTicket(ctx context.Context, cmd port.CreateTicketC
 		return nil, fmt.Errorf("failed to create ticket: %w", err)
 	}
 
-	for _, file := range cmd.Files {
-		file.TicketID = ticket.ID
-		if err := s.repo.AddFile(ctx, &file); err != nil {
-			// Log error but continue? Or fail?
-			// For now, let's return error, but the ticket is already created.
-			return nil, fmt.Errorf("failed to add file: %w", err)
-		}
+	for i := range cmd.Files {
+		cmd.Files[i].TicketID = ticket.ID
+	}
+
+	if err := s.repo.AddFiles(ctx, cmd.Files); err != nil {
+		// Log error but continue? Or fail?
+		// For now, let's return error, but the ticket is already created.
+		return nil, fmt.Errorf("failed to add files: %w", err)
 	}
 
 	return ticket, nil

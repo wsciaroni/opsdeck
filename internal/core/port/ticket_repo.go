@@ -30,6 +30,7 @@ type TicketRepository interface {
 	Update(ctx context.Context, ticket *domain.Ticket) error
 
 	AddFile(ctx context.Context, file *domain.File) error
+	AddFiles(ctx context.Context, files []domain.File) error
 	GetFile(ctx context.Context, id uuid.UUID) (*domain.File, error)
 	ListFiles(ctx context.Context, ticketID uuid.UUID) ([]domain.File, error)
 }

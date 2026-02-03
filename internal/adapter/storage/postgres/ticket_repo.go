@@ -275,6 +275,35 @@ func (r *TicketRepository) AddFile(ctx context.Context, file *domain.File) error
 	return nil
 }
 
+func (r *TicketRepository) AddFiles(ctx context.Context, files []domain.File) error {
+	if len(files) == 0 {
+		return nil
+	}
+
+	rows := [][]interface{}{}
+	for _, f := range files {
+		rows = append(rows, []interface{}{
+			f.TicketID,
+			f.Filename,
+			f.ContentType,
+			f.Size,
+			f.Data,
+		})
+	}
+
+	_, err := r.db.CopyFrom(
+		ctx,
+		pgx.Identifier{"ticket_files"},
+		[]string{"ticket_id", "filename", "content_type", "size", "data"},
+		pgx.CopyFromRows(rows),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to add files: %w", err)
+	}
+	return nil
+}
+
 func (r *TicketRepository) GetFile(ctx context.Context, id uuid.UUID) (*domain.File, error) {
 	query := `
 		SELECT id, ticket_id, filename, content_type, size, data, created_at
