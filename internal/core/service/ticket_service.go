@@ -103,8 +103,22 @@ func (s *TicketService) UpdateTicket(ctx context.Context, id uuid.UUID, cmd port
 	if cmd.AssigneeUserID != nil {
 		if *cmd.AssigneeUserID == uuid.Nil {
 			ticket.AssigneeUserID = nil
+			// Also clear custom assignee when unassigning
+			ticket.AssigneeCustomName = nil
 		} else {
 			ticket.AssigneeUserID = cmd.AssigneeUserID
+			// If assigning to a user, clear custom assignee
+			ticket.AssigneeCustomName = nil
+		}
+	}
+
+	if cmd.AssigneeCustomName != nil {
+		if *cmd.AssigneeCustomName == "" {
+			ticket.AssigneeCustomName = nil
+		} else {
+			ticket.AssigneeCustomName = cmd.AssigneeCustomName
+			// If assigning to a custom name, clear assignee user
+			ticket.AssigneeUserID = nil
 		}
 	}
 

@@ -34,6 +34,7 @@ type Ticket struct {
 	PriorityID     string     `json:"priority_id"`
 	ReporterID     uuid.UUID  `json:"reporter_id"`
 	AssigneeUserID *uuid.UUID `json:"assignee_user_id"`
+	AssigneeCustomName *string `json:"assignee_custom_name"`
 	Sensitive      bool       `json:"sensitive"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`

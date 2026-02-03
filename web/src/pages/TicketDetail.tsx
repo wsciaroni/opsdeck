@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTicket, updateTicket } from '../api/tickets';
@@ -27,7 +28,7 @@ export default function TicketDetail() {
   });
 
   const mutation = useMutation({
-    mutationFn: (data: { status_id?: string; priority_id?: string; sensitive?: boolean; assignee_id?: string | null }) =>
+    mutationFn: (data: { status_id?: string; priority_id?: string; sensitive?: boolean; assignee_id?: string | null; assignee_custom_name?: string }) =>
       updateTicket(id!, data),
     onSuccess: (updatedTicket) => {
       queryClient.setQueryData(['ticket', id], (oldData: Ticket) => ({
@@ -39,6 +40,24 @@ export default function TicketDetail() {
       toast.success("Ticket updated!");
     },
   });
+
+  const [isCustomAssignee, setIsCustomAssignee] = useState(false);
+  const [customAssigneeName, setCustomAssigneeName] = useState('');
+
+  useEffect(() => {
+    if (ticket) {
+      const hasCustom = !!ticket.assignee_custom_name;
+      if (isCustomAssignee !== hasCustom) {
+        setIsCustomAssignee(hasCustom);
+      }
+      if (ticket.assignee_custom_name && ticket.assignee_custom_name !== customAssigneeName) {
+        setCustomAssigneeName(ticket.assignee_custom_name);
+      } else if (!ticket.assignee_custom_name && !hasCustom && customAssigneeName !== '') {
+        setCustomAssigneeName('');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket]);
 
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Loading ticket...</div>;
@@ -57,7 +76,19 @@ export default function TicketDetail() {
   };
 
   const handleAssigneeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    mutation.mutate({ assignee_id: e.target.value });
+    const value = e.target.value;
+    if (value === 'custom') {
+      setIsCustomAssignee(true);
+    } else {
+      setIsCustomAssignee(false);
+      mutation.mutate({ assignee_id: value });
+    }
+  };
+
+  const handleCustomNameSubmit = () => {
+    if (customAssigneeName.trim()) {
+      mutation.mutate({ assignee_custom_name: customAssigneeName });
+    }
   };
 
   return (
@@ -120,20 +151,35 @@ export default function TicketDetail() {
 
         <div>
           <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 mr-2 mb-1">Assignee</label>
-          <select
-            id="assignee"
-            value={ticket.assignee_user_id || '00000000-0000-0000-0000-000000000000'}
-            onChange={handleAssigneeChange}
-            disabled={mutation.isPending}
-            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <option value="00000000-0000-0000-0000-000000000000">Unassigned</option>
-            {members?.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              id="assignee"
+              value={isCustomAssignee ? 'custom' : (ticket.assignee_user_id || '00000000-0000-0000-0000-000000000000')}
+              onChange={handleAssigneeChange}
+              disabled={mutation.isPending}
+              className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="00000000-0000-0000-0000-000000000000">Unassigned</option>
+              <option value="custom">External / Contractor</option>
+              {members?.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+            {isCustomAssignee && (
+              <input
+                type="text"
+                value={customAssigneeName}
+                onChange={(e) => setCustomAssigneeName(e.target.value)}
+                onBlur={handleCustomNameSubmit}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCustomNameSubmit(); }}
+                placeholder="Enter name..."
+                className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                disabled={mutation.isPending}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex items-center ml-auto">

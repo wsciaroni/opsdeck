@@ -36,6 +36,7 @@ export interface Ticket {
   priority_id: string;
   reporter_id: string;
   assignee_user_id: string | null;
+  assignee_custom_name?: string;
   assignee_name?: string;
   reporter_name?: string;
   sensitive: boolean;

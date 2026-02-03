@@ -21,11 +21,12 @@ type CreateTicketCmd struct {
 
 // UpdateTicketCmd defines the command to update an existing ticket.
 type UpdateTicketCmd struct {
-	StatusID       *string
-	PriorityID     *string
-	AssigneeUserID *uuid.UUID
-	Title          *string
-	Description    *string
+	StatusID           *string
+	PriorityID         *string
+	AssigneeUserID     *uuid.UUID
+	AssigneeCustomName *string
+	Title              *string
+	Description        *string
 	Location       *string
 	Sensitive      *bool
 }
