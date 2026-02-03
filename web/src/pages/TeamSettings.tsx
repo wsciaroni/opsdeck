@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import EmptyState from '../components/EmptyState';
+import Avatar from '../components/Avatar';
 
 export default function TeamSettings() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -351,15 +352,12 @@ export default function TeamSettings() {
               <li key={member.id} className="px-4 py-4 sm:px-6 flex items-center justify-between hover:bg-gray-50">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    {member.avatar_url ? (
-                      <img className="h-10 w-10 rounded-full" src={member.avatar_url} alt="" />
-                    ) : (
-                      <span className="inline-block h-10 w-10 rounded-full overflow-hidden bg-gray-100">
-                        <svg className="h-full w-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                      </span>
-                    )}
+                    <Avatar
+                      className="h-10 w-10 rounded-full"
+                      src={member.avatar_url}
+                      name={member.name}
+                      alt={member.name}
+                    />
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">{member.name || 'Unknown Name'}</div>

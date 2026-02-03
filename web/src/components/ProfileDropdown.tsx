@@ -5,6 +5,7 @@ import { Menu, Transition, Dialog } from '@headlessui/react';
 import { User as UserIcon, LogOut, Check, Plus, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
+import Avatar from './Avatar';
 
 export default function ProfileDropdown() {
   const { user, currentOrg, organizations, switchOrganization, refreshOrganizations, logout } = useAuth();
@@ -39,17 +40,12 @@ export default function ProfileDropdown() {
         <div>
           <Menu.Button className="flex rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             <span className="sr-only">Open user menu</span>
-            {user.avatar_url ? (
-              <img
-                className="h-8 w-8 rounded-full"
-                src={user.avatar_url}
-                alt=""
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                <UserIcon className="h-5 w-5" />
-              </div>
-            )}
+            <Avatar
+              className="h-8 w-8 rounded-full"
+              src={user.avatar_url}
+              name={user.name}
+              alt={user.name}
+            />
           </Menu.Button>
         </div>
 
