@@ -1,5 +1,5 @@
 import { Popover, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { Fragment, memo } from 'react';
 import { Filter } from 'lucide-react';
 import { TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import clsx from 'clsx';
@@ -11,7 +11,8 @@ interface FilterPopoverProps {
   setPriority: (priority: string[] | undefined) => void;
 }
 
-export default function FilterPopover({
+// Memoized to prevent unnecessary re-renders when parent DashboardHeader updates (e.g. on search input change)
+const FilterPopover = memo(function FilterPopover({
   status,
   setStatus,
   priority,
@@ -210,4 +211,6 @@ export default function FilterPopover({
       )}
     </Popover>
   );
-}
+});
+
+export default FilterPopover;
