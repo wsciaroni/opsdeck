@@ -19,6 +19,9 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
+// Define the avatar service URL as a constant
+const AVATAR_SERVICE_URL = 'https://ui-avatars.com/api/';
+
 export default function Avatar({ src, alt, name, className }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
   const [uiAvatarError, setUiAvatarError] = useState(false);
@@ -42,10 +45,15 @@ export default function Avatar({ src, alt, name, className }: AvatarProps) {
     // Use initials to avoid sending full PII to third-party service
     const initials = getInitials(name!);
 
+    // Construct URL safely using URL API
+    const url = new URL(AVATAR_SERVICE_URL);
+    url.searchParams.set('name', initials);
+    url.searchParams.set('background', 'random');
+
     return (
         <img
             className={clsx("object-cover", className)}
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random`}
+            src={url.toString()}
             alt={alt || name}
             onError={() => setUiAvatarError(true)}
             referrerPolicy="no-referrer"
