@@ -9,6 +9,16 @@ interface AvatarProps {
   className?: string;
 }
 
+const getInitials = (name: string) => {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
 export default function Avatar({ src, alt, name, className }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
   const [uiAvatarError, setUiAvatarError] = useState(false);
@@ -23,17 +33,22 @@ export default function Avatar({ src, alt, name, className }: AvatarProps) {
         src={src}
         alt={alt || ""}
         onError={() => setImgError(true)}
+        referrerPolicy="no-referrer"
       />
     );
   }
 
   if (showUiAvatar) {
+    // Use initials to avoid sending full PII to third-party service
+    const initials = getInitials(name!);
+
     return (
         <img
             className={clsx("object-cover", className)}
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name!)}&background=random`}
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=random`}
             alt={alt || name}
             onError={() => setUiAvatarError(true)}
+            referrerPolicy="no-referrer"
         />
     )
   }

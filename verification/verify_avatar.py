@@ -5,10 +5,6 @@ def run(playwright):
     page = browser.new_page()
 
     # Mock /api/me
-    # We need to handle options requests or ensure CORS is fine if we were cross-origin, but here we are same origin conceptually (proxy in dev)
-    # But checking localhost:5173 directly means we need to mock the API calls which usually go to /api...
-    # The vite config proxies /api to backend. But we are intercepting requests.
-
     page.route("**/api/me", lambda route: route.fulfill(
         status=200,
         content_type="application/json",
@@ -27,9 +23,8 @@ def run(playwright):
     # Inside it, there should be an img.
     avatar_img = user_menu_button.locator("img")
 
-    # Expect it to eventually point to ui-avatars
-    # Note: encoded space is %20
-    expect(avatar_img).to_have_attribute("src", "https://ui-avatars.com/api/?name=Test%20User&background=random")
+    # Expect it to eventually point to ui-avatars with INITIALS "TU" (Test User)
+    expect(avatar_img).to_have_attribute("src", "https://ui-avatars.com/api/?name=TU&background=random")
 
     # Take screenshot
     page.screenshot(path="/home/jules/verification/verification.png")
