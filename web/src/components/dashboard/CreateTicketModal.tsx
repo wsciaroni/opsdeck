@@ -3,8 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { Paperclip, Loader2, X } from 'lucide-react';
-import { formatBytes } from '../../utils';
+import { Loader2 } from 'lucide-react';
+import FileUpload from '../FileUpload';
 
 interface CreateTicketModalProps {
   isOpen: boolean;
@@ -54,39 +54,6 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
         organization_id: organizationId,
       });
     }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFiles = Array.from(e.target.files);
-      const validFiles: File[] = [];
-      const MAX_SIZE = 32 * 1024 * 1024; // 32MB
-      // Allowed extensions matching the accept attribute
-      const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
-
-      selectedFiles.forEach(file => {
-        if (file.size > MAX_SIZE) {
-          toast.error(`File ${file.name} is too large (max 32MB)`);
-          return;
-        }
-
-        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-        if (!ALLOWED_EXTENSIONS.includes(fileExtension) && file.name.includes('.')) {
-             toast.error(`File type ${fileExtension} is not allowed`);
-             return;
-        }
-
-        validFiles.push(file);
-      });
-
-      if (validFiles.length > 0) {
-        setFiles(validFiles);
-      }
-    }
-  };
-
-  const removeFile = (indexToRemove: number) => {
-    setFiles(files.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -159,46 +126,10 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
                               <option value="critical">Critical</option>
                             </select>
                           </div>
-                          <div>
-                            <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">Attachments</label>
-                            <div className="mt-1 flex items-center">
-                              <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 flex items-center gap-2">
-                                <Paperclip className="h-4 w-4" />
-                                <span>Upload files</span>
-                                <input
-                                  id="file-upload"
-                                  name="file-upload"
-                                  type="file"
-                                  className="sr-only"
-                                  multiple
-                                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-                                  onChange={handleFileChange}
-                                />
-                              </label>
-                            </div>
-                            {files.length > 0 && (
-                              <ul className="mt-3 space-y-1">
-                                {files.map((file, index) => (
-                                  <li key={index} className="text-sm text-gray-500 flex items-center justify-between py-1">
-                                    <div className="flex items-center min-w-0">
-                                      <Paperclip className="h-3 w-3 mr-2 text-gray-400 flex-shrink-0" />
-                                      <span className="truncate">
-                                        {file.name} <span className="text-gray-400 text-xs ml-1">({formatBytes(file.size)})</span>
-                                      </span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFile(index)}
-                                      className="ml-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-600"
-                                      aria-label={`Remove ${file.name}`}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+                          <FileUpload
+                            files={files}
+                            onFilesChange={setFiles}
+                          />
                           <div className="flex items-center">
                             <input
                               id="sensitive"

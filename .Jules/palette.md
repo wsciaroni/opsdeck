@@ -35,3 +35,7 @@
 ## 2026-05-19 - File Size Formatting
 **Learning:** Displaying raw bytes (e.g., "1536 Bytes") or hardcoded KB values (e.g., "1536.00 KB") is user-hostile, especially on mobile where data context matters.
 **Action:** Use a reusable `formatBytes` utility across the application to consistently display human-readable file sizes (e.g., "1.5 KB", "5 MB").
+
+## 2026-05-20 - Managed File Uploads
+**Learning:** Standard `<input type="file" multiple>` is user-hostile because selecting new files replaces the entire list, preventing users from adding/removing individual files incrementally.
+**Action:** Always maintain a `files` array state separate from the input. Implement a "file list" UI with removal buttons and use the input only for adding files (clearing its value after selection to allow re-selection).

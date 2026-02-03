@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { createPublicTicket } from '../api/tickets';
-import { AlertCircle, CheckCircle, Paperclip, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import FileUpload from '../components/FileUpload';
 
 export default function PublicTicketSubmit() {
   const [searchParams] = useSearchParams();
@@ -15,12 +16,12 @@ export default function PublicTicketSubmit() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [priority, setPriority] = useState('low');
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const mutation = useMutation({
-    mutationFn: (data: { title: string; description: string; name: string; email: string; priority_id: string; files: FileList | null }) => {
+    mutationFn: (data: { title: string; description: string; name: string; email: string; priority_id: string; files: File[] }) => {
         if (!token) throw new Error("Missing token");
 
         const formData = new FormData();
@@ -65,12 +66,6 @@ export default function PublicTicketSubmit() {
     mutation.mutate({ title, description, name, email, priority_id: priority, files });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles(e.target.files);
-    }
-  };
-
   if (!token) {
       return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -98,7 +93,7 @@ export default function PublicTicketSubmit() {
                         setSuccess(false);
                         setTitle('');
                         setDescription('');
-                        setFiles(null);
+                        setFiles([]);
                     }}
                     className="text-indigo-600 hover:text-indigo-500 font-medium"
                  >
@@ -223,26 +218,10 @@ export default function PublicTicketSubmit() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700">Attachments</label>
-              <div className="mt-1 flex items-center">
-                 <label htmlFor="file-upload" className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 flex items-center gap-2">
-                    <Paperclip className="h-4 w-4" />
-                    <span>Upload files</span>
-                    <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
-                 </label>
-              </div>
-              {files && files.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {Array.from(files).map((file, index) => (
-                    <li key={index} className="text-sm text-gray-500 flex items-center">
-                      <Paperclip className="h-3 w-3 mr-2 text-gray-400" />
-                      {file.name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <FileUpload
+              files={files}
+              onFilesChange={setFiles}
+            />
 
             <div>
               <button
