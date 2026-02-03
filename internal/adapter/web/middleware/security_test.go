@@ -22,6 +22,8 @@ func TestSecurityHeaders(t *testing.T) {
 		"X-Content-Type-Options": "nosniff",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
 		"X-XSS-Protection":       "1; mode=block",
+		"Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ui-avatars.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self';",
+		"Permissions-Policy":      "camera=(), microphone=(), geolocation=(), payment=()",
 	}
 
 	for key, expected := range headers {
