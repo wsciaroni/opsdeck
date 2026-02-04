@@ -1,119 +1,41 @@
-from playwright.sync_api import sync_playwright
-import json
+from playwright.sync_api import sync_playwright, expect
 
-def verify_avatar():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(viewport={"width": 1280, "height": 720})
-        page = context.new_page()
+def run(playwright):
+    browser = playwright.chromium.launch(headless=True)
+    page = browser.new_page()
 
-        # Debug console
-        page.on("console", lambda msg: print(f"CONSOLE: {msg.text}"))
-        page.on("pageerror", lambda err: print(f"PAGE ERROR: {err}"))
+    # Mock /api/me
+    page.route("**/api/me", lambda route: route.fulfill(
+        status=200,
+        content_type="application/json",
+        body='{"user": {"id": "123e4567-e89b-12d3-a456-426614174000", "email": "test@example.com", "name": "Test User", "avatar_url": "http://broken.com/image.png", "role": "admin"}, "organizations": []}'
+    ))
 
-        # Mock /api/me to avoid login redirect
-        user = {
-            "id": "u1",
-            "email": "user@example.com",
-            "name": "Test User",
-            "role": "admin",
-            "created_at": "2023-01-01T00:00:00Z"
-        }
-        page.route("**/api/me", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"user": user})
-        ))
+    # Mock broken image
+    page.route("http://broken.com/image.png", lambda route: route.fulfill(status=404))
 
-        # Mock Ticket details
-        ticket = {
-            "id": "t1",
-            "organization_id": "o1",
-            "title": "Test Ticket",
-            "description": "Description",
-            "status_id": "open",
-            "priority_id": "low",
-            "reporter_id": "u1",
-            "created_at": "2023-01-01T00:00:00Z",
-            "updated_at": "2023-01-01T00:00:00Z",
-            "reporter_name": "Test User",
-            "files": []
-        }
-        page.route("**/api/tickets/t1", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps(ticket)
-        ))
+    # Navigate to app
+    page.goto("http://localhost:5173/")
 
-        # Mock Members (empty list)
-        page.route("**/api/organizations/o1/members", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps([])
-        ))
+    # Wait for the avatar in the header.
+    user_menu_button = page.get_by_role("button", name="Open user menu")
 
-        # Mock Comments
-        comments = [
-            {
-                "id": "c1",
-                "body": "Comment with no avatar",
-                "sensitive": False,
-                "created_at": "2023-01-01T00:00:00Z",
-                "user": {
-                    "id": "u1",
-                    "name": "John Doe",
-                    "avatar_url": ""
-                }
-            },
-            {
-                "id": "c2",
-                "body": "Comment with avatar",
-                "sensitive": False,
-                "created_at": "2023-01-01T00:00:00Z",
-                "user": {
-                    "id": "u2",
-                    "name": "Jane Smith",
-                    "avatar_url": "https://example.com/avatar.jpg"
-                }
-            }
-        ]
-        page.route("**/api/tickets/t1/comments", lambda route: route.fulfill(
-            status=200,
-            content_type="application/json",
-            body=json.dumps(comments)
-        ))
+    # Now that we are using local DIV fallback, we shouldn't look for an img tag if it falls back.
+    # The component structure:
+    # If showOriginal -> img
+    # If showInitials -> div with span inside
 
-        try:
-            print("Navigating to ticket page...")
-            page.goto("http://localhost:5173/tickets/t1")
+    # Check for the text "TU" inside the button
+    expect(user_menu_button).to_contain_text("TU")
 
-            # Wait for any text to ensure page loaded
-            page.wait_for_load_state("networkidle")
+    # Check that it is NOT an image tag
+    avatar_img = user_menu_button.locator("img")
+    expect(avatar_img).to_have_count(0)
 
-            print("Waiting for comments...")
-            page.wait_for_selector("text=Comment with no avatar", timeout=10000)
+    # Take screenshot
+    page.screenshot(path="/home/jules/verification/verification.png")
 
-            # Check for Initials "JD" for John Doe
-            page.wait_for_selector("text=JD")
-            print("Found initials 'JD'")
+    browser.close()
 
-            # Check that there is NO img with ui-avatars.com
-            images = page.locator("img").all()
-            for img in images:
-                src = img.get_attribute("src")
-                if src and "ui-avatars.com" in src:
-                    raise Exception(f"Found ui-avatars.com image: {src}")
-            print("No ui-avatars.com images found.")
-
-            page.screenshot(path="verification_avatar.png")
-            print("Screenshot saved to verification_avatar.png")
-
-        except Exception as e:
-            print(f"Verification failed: {e}")
-            page.screenshot(path="verification_failure.png")
-            raise e
-        finally:
-            browser.close()
-
-if __name__ == "__main__":
-    verify_avatar()
+with sync_playwright() as playwright:
+    run(playwright)

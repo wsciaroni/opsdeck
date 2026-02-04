@@ -1,77 +1,91 @@
+import { useState } from 'react';
+import { User as UserIcon } from 'lucide-react';
 import clsx from 'clsx';
-import { useMemo } from 'react';
 
 interface AvatarProps {
-  name: string;
-  src?: string | null;
+  src?: string;
+  alt?: string;
+  name?: string;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
 }
 
-const COLORS = [
-  'bg-red-500',
-  'bg-orange-500',
-  'bg-amber-500',
-  'bg-green-500',
-  'bg-emerald-500',
-  'bg-teal-500',
-  'bg-cyan-500',
-  'bg-sky-500',
-  'bg-blue-500',
-  'bg-indigo-500',
-  'bg-violet-500',
-  'bg-purple-500',
-  'bg-fuchsia-500',
-  'bg-pink-500',
-  'bg-rose-500',
-];
+const getInitials = (name: string) => {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function getColor(name: string): string {
+const getBackgroundColor = (name: string) => {
+  const colors = [
+    'bg-red-500',
+    'bg-orange-500',
+    'bg-amber-500',
+    'bg-yellow-500',
+    'bg-lime-500',
+    'bg-green-500',
+    'bg-emerald-500',
+    'bg-teal-500',
+    'bg-cyan-500',
+    'bg-sky-500',
+    'bg-blue-500',
+    'bg-indigo-500',
+    'bg-violet-500',
+    'bg-purple-500',
+    'bg-fuchsia-500',
+    'bg-pink-500',
+    'bg-rose-500',
+  ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  return COLORS[Math.abs(hash) % COLORS.length];
-}
+  return colors[Math.abs(hash) % colors.length];
+};
 
-export default function Avatar({ name, src, className, size = 'md' }: AvatarProps) {
-  const initials = useMemo(() => getInitials(name), [name]);
-  const colorClass = useMemo(() => getColor(name), [name]);
+export default function Avatar({ src, alt, name, className }: AvatarProps) {
+  const [imgError, setImgError] = useState(false);
 
-  const sizeClasses = {
-    sm: 'h-8 w-8 text-xs',
-    md: 'h-10 w-10 text-sm',
-    lg: 'h-12 w-12 text-base',
-  };
+  const showOriginal = src && !imgError;
+  // If no image or image failed, and we have a name, show initials
+  const showInitials = !showOriginal && name;
 
-  if (src) {
+  if (showOriginal) {
     return (
       <img
-        className={clsx('rounded-full object-cover', sizeClasses[size], className)}
+        className={clsx("object-cover", className)}
         src={src}
-        alt={name}
+        alt={alt || ""}
+        onError={() => setImgError(true)}
+        referrerPolicy="no-referrer"
       />
     );
   }
 
+  if (showInitials) {
+    const initials = getInitials(name!);
+    const bgColor = getBackgroundColor(name!);
+
+    return (
+      <div
+        className={clsx(
+          "flex items-center justify-center text-white font-medium select-none",
+          bgColor,
+          className
+        )}
+        aria-label={alt || name}
+      >
+        <span className="text-[40%] leading-none">{initials}</span>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={clsx(
-        'rounded-full flex items-center justify-center text-white font-medium select-none',
-        sizeClasses[size],
-        colorClass,
-        className
-      )}
-      aria-hidden="true"
-    >
-      {initials}
+    <div className={clsx("flex items-center justify-center bg-gray-100 text-gray-400 overflow-hidden", className)}>
+      <UserIcon className="h-3/5 w-3/5" />
     </div>
   );
 }

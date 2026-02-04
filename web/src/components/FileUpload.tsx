@@ -36,7 +36,7 @@ export default function FileUpload({
       });
 
       if (validFiles.length > 0) {
-        onFilesChange(validFiles);
+        onFilesChange([...files, ...validFiles]);
       }
 
       // Reset input value to allow re-selecting the same file if needed

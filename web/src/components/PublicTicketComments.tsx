@@ -34,7 +34,12 @@ export default function PublicTicketComments() {
           comments.map((comment) => (
             <div key={comment.id} className="flex space-x-3">
               <div className="flex-shrink-0">
-                <Avatar name={comment.user.name} src={comment.user.avatar_url} />
+                <Avatar
+                  className="h-10 w-10 rounded-full"
+                  src={comment.user.avatar_url}
+                  name={comment.user.name}
+                  alt={comment.user.name}
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <div>

@@ -9,12 +9,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
 	"github.com/wsciaroni/opsdeck/internal/core/port"
-	"github.com/wsciaroni/opsdeck/internal/core/service"
 )
 
 type PublicViewHandler struct {
 	orgRepo        port.OrganizationRepository
-	ticketService  *service.TicketService
+	ticketService  port.TicketService
 	commentService port.CommentService
 	userRepo       port.UserRepository
 	logger         *slog.Logger
@@ -22,7 +21,7 @@ type PublicViewHandler struct {
 
 func NewPublicViewHandler(
 	orgRepo port.OrganizationRepository,
-	ticketService *service.TicketService,
+	ticketService port.TicketService,
 	commentService port.CommentService,
 	userRepo port.UserRepository,
 	logger *slog.Logger,
@@ -204,21 +203,27 @@ func (h *PublicViewHandler) ListComments(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Hydrate users
+	// Hydrate users (Optimized: Batch fetch)
 	userIDs := make(map[uuid.UUID]bool)
 	for _, c := range comments {
 		userIDs[c.UserID] = true
 	}
 
-	users := make(map[uuid.UUID]*domain.User)
+	uniqueUserIDs := make([]uuid.UUID, 0, len(userIDs))
 	for uid := range userIDs {
-		u, err := h.userRepo.GetByID(r.Context(), uid)
+		uniqueUserIDs = append(uniqueUserIDs, uid)
+	}
+
+	users := make(map[uuid.UUID]*domain.User)
+	if len(uniqueUserIDs) > 0 {
+		userList, err := h.userRepo.GetByIDs(r.Context(), uniqueUserIDs)
 		if err != nil {
-			h.logger.Error("Failed to fetch user", "userID", uid, "error", err)
-			continue
-		}
-		if u != nil {
-			users[uid] = u
+			h.logger.Error("Failed to fetch users", "error", err)
+			// Continue with partial/no user info
+		} else {
+			for i := range userList {
+				users[userList[i].ID] = &userList[i]
+			}
 		}
 	}
 
