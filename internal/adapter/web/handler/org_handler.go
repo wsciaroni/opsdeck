@@ -18,16 +18,18 @@ import (
 )
 
 type OrgHandler struct {
-	orgRepo  port.OrganizationRepository
-	userRepo port.UserRepository
-	logger   *slog.Logger
+	orgRepo             port.OrganizationRepository
+	userRepo            port.UserRepository
+	notificationService port.NotificationService
+	logger              *slog.Logger
 }
 
-func NewOrgHandler(orgRepo port.OrganizationRepository, userRepo port.UserRepository, logger *slog.Logger) *OrgHandler {
+func NewOrgHandler(orgRepo port.OrganizationRepository, userRepo port.UserRepository, notificationService port.NotificationService, logger *slog.Logger) *OrgHandler {
 	return &OrgHandler{
-		orgRepo:  orgRepo,
-		userRepo: userRepo,
-		logger:   logger,
+		orgRepo:             orgRepo,
+		userRepo:            userRepo,
+		notificationService: notificationService,
+		logger:              logger,
 	}
 }
 
@@ -163,6 +165,15 @@ func (h *OrgHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to add member", http.StatusInternalServerError)
 		return
 	}
+
+	// Try to get org name for notification
+	org, err := h.orgRepo.GetByID(r.Context(), orgID)
+	orgName := "Organization"
+	if err == nil && org != nil {
+		orgName = org.Name
+	}
+
+	_ = h.notificationService.NotifyUserAddedToOrg(r.Context(), userToAdd.Email, orgName)
 
 	w.WriteHeader(http.StatusCreated)
 }
