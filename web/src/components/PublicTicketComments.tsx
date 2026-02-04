@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPublicTicketComments } from '../api/public';
 import { formatDistanceToNow } from 'date-fns';
 import { useParams } from 'react-router-dom';
+import Avatar from './Avatar';
 
 export default function PublicTicketComments() {
   const { token, ticketId } = useParams<{ token: string; ticketId: string }>();
@@ -33,9 +34,10 @@ export default function PublicTicketComments() {
           comments.map((comment) => (
             <div key={comment.id} className="flex space-x-3">
               <div className="flex-shrink-0">
-                <img
-                  className="h-10 w-10 rounded-full bg-gray-300"
-                  src={comment.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}`}
+                <Avatar
+                  className="h-10 w-10 rounded-full"
+                  src={comment.user.avatar_url}
+                  name={comment.user.name}
                   alt={comment.user.name}
                 />
               </div>
