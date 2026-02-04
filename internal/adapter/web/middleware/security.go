@@ -13,7 +13,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// Basic XSS protection (for older browsers)
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		// Content Security Policy
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ui-avatars.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self';")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self';")
 		// Permissions Policy
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
 

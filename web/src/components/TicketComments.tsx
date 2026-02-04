@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { Lock, Loader2 } from 'lucide-react';
+import Avatar from './Avatar';
 
 interface TicketCommentsProps {
   ticketId: string;
@@ -15,11 +16,7 @@ const CommentItem = memo(function CommentItem({ comment }: { readonly comment: C
   return (
     <div className="flex space-x-3">
       <div className="flex-shrink-0">
-        <img
-          className="h-10 w-10 rounded-full bg-gray-300"
-          src={comment.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}`}
-          alt={comment.user.name}
-        />
+        <Avatar name={comment.user.name} src={comment.user.avatar_url} />
       </div>
       <div className="min-w-0 flex-1">
         <div>
