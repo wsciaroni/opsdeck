@@ -28,13 +28,20 @@ export const StatusBadge = memo(function StatusBadge({ status }: { status: strin
 });
 
 const PRIORITY_COLORS: Record<string, string> = {
-  low: 'text-gray-500',
-  medium: 'text-blue-500',
-  high: 'text-orange-500 font-bold',
-  critical: 'text-red-600 font-bold uppercase',
+  low: 'text-gray-600',
+  medium: 'text-blue-700',
+  high: 'text-orange-700 font-bold',
+  critical: 'text-red-700 font-bold uppercase',
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  critical: 'Critical',
 };
 
 // Optimized: Memoize component to prevent re-renders in large lists when props are stable.
 export const PriorityLabel = memo(function PriorityLabel({ priority }: { priority: string }) {
-  return <span className={clsx("text-sm", PRIORITY_COLORS[priority] || 'text-gray-500')}>{priority}</span>;
+  return <span className={clsx("text-sm", PRIORITY_COLORS[priority] || 'text-gray-500')}>{PRIORITY_LABELS[priority] || priority}</span>;
 });
