@@ -60,11 +60,14 @@ func NewRouter(
 			// Admin Routes
 			r.Get("/admin/export/tickets", ticketHandler.ExportTickets)
 
-			r.Post("/tickets", ticketHandler.CreateTicket)
+			// Rate limit ticket creation/updates to 20 requests per minute per IP
+			// This mitigates DoS risks from authenticated users (e.g. large file uploads)
+			ticketRL := appMiddleware.NewRateLimiter(20, time.Minute)
+			r.With(ticketRL.Limit).Post("/tickets", ticketHandler.CreateTicket)
 			r.Get("/tickets", ticketHandler.ListTickets)
 			r.Get("/tickets/{ticketID}", ticketHandler.GetTicket)
 			r.Get("/tickets/{ticketID}/files/{fileID}", ticketHandler.GetTicketFile)
-			r.Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
+			r.With(ticketRL.Limit).Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
 
 			// Comments
 			r.Post("/tickets/{ticketID}/comments", commentHandler.Create)
