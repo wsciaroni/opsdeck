@@ -13,12 +13,11 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/adapter/web/middleware"
 	"github.com/wsciaroni/opsdeck/internal/core/domain"
 	"github.com/wsciaroni/opsdeck/internal/core/port"
-	"github.com/wsciaroni/opsdeck/internal/core/service"
 )
 
 type CommentHandler struct {
 	commentService port.CommentService
-	ticketService  *service.TicketService
+	ticketService  port.TicketService
 	userRepo       port.UserRepository
 	orgRepo        port.OrganizationRepository
 	logger         *slog.Logger
@@ -26,7 +25,7 @@ type CommentHandler struct {
 
 func NewCommentHandler(
 	commentService port.CommentService,
-	ticketService *service.TicketService,
+	ticketService port.TicketService,
 	userRepo port.UserRepository,
 	orgRepo port.OrganizationRepository,
 	logger *slog.Logger,
@@ -173,21 +172,27 @@ func (h *CommentHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch users
-	// Collect User IDs
-	userIDs := make(map[uuid.UUID]bool)
+	// Collect unique User IDs
+	uniqueUserIDs := make([]uuid.UUID, 0)
+	seenUserIDs := make(map[uuid.UUID]bool)
 	for _, c := range comments {
-		userIDs[c.UserID] = true
+		if !seenUserIDs[c.UserID] {
+			uniqueUserIDs = append(uniqueUserIDs, c.UserID)
+			seenUserIDs[c.UserID] = true
+		}
 	}
 
 	users := make(map[uuid.UUID]*domain.User)
-	for uid := range userIDs {
-		u, err := h.userRepo.GetByID(r.Context(), uid)
+	if len(uniqueUserIDs) > 0 {
+		fetchedUsers, err := h.userRepo.GetByIDs(r.Context(), uniqueUserIDs)
 		if err != nil {
-			h.logger.Error("Failed to fetch user", "userID", uid, "error", err)
-			continue
-		}
-		if u != nil {
-			users[uid] = u
+			h.logger.Error("Failed to fetch users", "error", err)
+			// Continue with partial/empty users map
+		} else {
+			for i := range fetchedUsers {
+				u := &fetchedUsers[i]
+				users[u.ID] = u
+			}
 		}
 	}
 
@@ -216,23 +221,12 @@ func (h *CommentHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CommentHandler) checkOrgAccess(ctx context.Context, userID, orgID uuid.UUID) error {
-	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	role, err := h.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to list user memberships: %w", err)
+		return fmt.Errorf("failed to get member role: %w", err)
 	}
-
-	for _, m := range memberships {
-		// UserMembership embeds Organization, so we access OrganizationID via m.ID (since UserMembership embeds Organization struct)
-		// Wait, UserMembership struct is:
-		// type UserMembership struct {
-		// 	Organization
-		// 	Role string
-		// }
-		// So m.ID is the Organization ID.
-		if m.ID == orgID {
-			return nil
-		}
+	if role == "" {
+		return fmt.Errorf("user is not a member of organization %s", orgID)
 	}
-
-	return fmt.Errorf("user is not a member of organization %s", orgID)
+	return nil
 }
