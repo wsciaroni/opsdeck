@@ -17,6 +17,8 @@ import (
 	"github.com/wsciaroni/opsdeck/internal/core/port"
 )
 
+const MaxJSONBodySize = 1 << 20 // 1MB
+
 type OrgHandler struct {
 	orgRepo             port.OrganizationRepository
 	userRepo            port.UserRepository
@@ -40,13 +42,26 @@ type CreateOrgRequest struct {
 
 func (h *OrgHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	var req CreateOrgRequest
+
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if req.Name == "" {
 		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Name) > 100 {
+		http.Error(w, "Name too long (max 100 chars)", http.StatusBadRequest)
 		return
 	}
 
@@ -103,7 +118,13 @@ func (h *OrgHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	// Parse Request Body
 	var req AddMemberRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -380,7 +401,13 @@ func (h *OrgHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 
 	// Parse Request Body
 	var req UpdateMemberRoleRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -456,7 +483,13 @@ func (h *OrgHandler) UpdateShareSettings(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req UpdateShareSettingsRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -643,7 +676,13 @@ func (h *OrgHandler) UpdatePublicViewSettings(w http.ResponseWriter, r *http.Req
 	}
 
 	var req UpdatePublicViewSettingsRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
