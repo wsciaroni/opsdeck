@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -91,8 +92,23 @@ func (h *ScheduledTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateScheduledTaskRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Title) == 0 || len(req.Title) > 200 {
+		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
+		return
+	}
+	if len(req.Description) > 5000 {
+		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
 		return
 	}
 
@@ -143,8 +159,23 @@ func (h *ScheduledTaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateScheduledTaskRequest
+	// Limit request size to 1MB to prevent DoS
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if strings.Contains(err.Error(), "request body too large") {
+			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Title != nil && (len(*req.Title) == 0 || len(*req.Title) > 200) {
+		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
+		return
+	}
+	if req.Description != nil && len(*req.Description) > 5000 {
+		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
 		return
 	}
 
