@@ -53,7 +53,9 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
     >
       <div className="flex justify-between items-start mb-2">
           <PriorityLabel priority={ticket.priority_id} />
-          <span className="text-xs text-gray-400">{new Date(ticket.created_at).toLocaleDateString()}</span>
+          <span className="text-xs text-gray-600" aria-label={`Created on ${new Date(ticket.created_at).toLocaleDateString()}`}>
+            {new Date(ticket.created_at).toLocaleDateString()}
+          </span>
       </div>
       <h4 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
         {ticket.title}
@@ -120,7 +122,7 @@ const TicketBoard = memo(function TicketBoard({
               <TicketCard key={ticket.id} ticket={ticket} density={density} />
             ))}
             {!ticketsByStatus[column.id]?.length && (
-              <div className="text-center text-gray-400 text-sm py-4 italic">No tickets</div>
+              <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>
             )}
           </div>
         </div>

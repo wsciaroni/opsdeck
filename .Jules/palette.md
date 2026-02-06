@@ -39,3 +39,7 @@
 ## 2026-05-20 - Managed File Uploads
 **Learning:** Standard `<input type="file" multiple>` is user-hostile because selecting new files replaces the entire list, preventing users from adding/removing individual files incrementally.
 **Action:** Always maintain a `files` array state separate from the input. Implement a "file list" UI with removal buttons and use the input only for adding files (clearing its value after selection to allow re-selection).
+
+## 2026-05-24 - Text Contrast for Secondary Information
+**Learning:** `text-gray-400` (Tailwind) is often used for timestamps or metadata but fails WCAG AA contrast ratios on white backgrounds, especially for small text (`text-xs`).
+**Action:** Use `text-gray-500` for standard text and `text-gray-600` for small text (`text-xs`) to ensure readability while maintaining visual hierarchy.
