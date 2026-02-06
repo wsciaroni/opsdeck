@@ -47,7 +47,7 @@ const MobileTicketCard = memo(function MobileTicketCard({ ticket }: { readonly t
             <StatusBadge status={ticket.status_id} />
             <PriorityLabel priority={ticket.priority_id} />
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-600">
             {new Date(ticket.created_at).toLocaleDateString()}
           </div>
         </div>

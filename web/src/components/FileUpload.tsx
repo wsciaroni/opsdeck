@@ -73,7 +73,7 @@ export default function FileUpload({
               <div className="flex items-center min-w-0">
                 <Paperclip className="h-3 w-3 mr-2 text-gray-400 flex-shrink-0" />
                 <span className="truncate">
-                  {file.name} <span className="text-gray-400 text-xs ml-1">({formatBytes(file.size)})</span>
+                  {file.name} <span className="text-gray-500 text-xs ml-1">({formatBytes(file.size)})</span>
                 </span>
               </div>
               <button
