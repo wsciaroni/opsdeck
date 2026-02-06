@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createTicket } from '../../api/tickets';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ interface CreateTicketModalProps {
   organizationId: string;
 }
 
-export default function CreateTicketModal({ isOpen, onClose, organizationId }: CreateTicketModalProps) {
+const CreateTicketModal = memo(function CreateTicketModal({ isOpen, onClose, organizationId }: CreateTicketModalProps) {
   const queryClient = useQueryClient();
   const [newTicket, setNewTicket] = useState({
     title: '',
@@ -178,4 +178,6 @@ export default function CreateTicketModal({ isOpen, onClose, organizationId }: C
       </Dialog>
     </Transition>
   );
-}
+});
+
+export default CreateTicketModal;

@@ -15,6 +15,10 @@ export default function Dashboard() {
     setIsModalOpen(true);
   }, []);
 
+  const handleCloseNewTicket = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if user is typing in an input, textarea, or contentEditable element
@@ -145,7 +149,7 @@ export default function Dashboard() {
 
       <CreateTicketModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseNewTicket}
         organizationId={currentOrg.id}
       />
     </div>
