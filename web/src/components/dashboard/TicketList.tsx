@@ -33,28 +33,46 @@ interface TicketListProps {
   onOpenNewTicket: () => void;
 }
 
-const MobileTicketCard = memo(function MobileTicketCard({ ticket }: { readonly ticket: Ticket }) {
+const MobileTicketCard = memo(function MobileTicketCard({ ticket, density }: { readonly ticket: Ticket, density: Density }) {
   const navigate = useNavigate();
+
+  const paddingClass = {
+    compact: 'py-2',
+    standard: 'py-4',
+    comfortable: 'py-6',
+  }[density];
+
+  const fontSizeClass = {
+    compact: 'text-xs',
+    standard: 'text-sm',
+    comfortable: 'text-base',
+  }[density];
+
+  const metadataFontSizeClass = {
+    compact: 'text-xs',
+    standard: 'text-xs',
+    comfortable: 'text-sm',
+  }[density];
 
   return (
     <li className="block bg-white hover:bg-gray-50 cursor-pointer">
       <button
         onClick={() => navigate(`/tickets/${ticket.id}`)}
-        className="w-full text-left px-4 py-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+        className={clsx("w-full text-left px-4 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500", paddingClass)}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <StatusBadge status={ticket.status_id} />
             <PriorityLabel priority={ticket.priority_id} />
           </div>
-          <div className="text-xs text-gray-600">
+          <div className={clsx("text-gray-600", metadataFontSizeClass)}>
             {new Date(ticket.created_at).toLocaleDateString()}
           </div>
         </div>
         <div className="mb-2">
-          <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{ticket.title}</h3>
+          <h3 className={clsx("font-semibold text-gray-900 line-clamp-2", fontSizeClass)}>{ticket.title}</h3>
         </div>
-        <div className="flex items-center text-xs text-gray-500">
+        <div className={clsx("flex items-center text-gray-500", metadataFontSizeClass)}>
           <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
         </div>
       </button>
@@ -154,6 +172,7 @@ const TicketList = memo(function TicketList({ tickets, isLoading, error, density
               <MobileTicketCard
                 key={ticket.id}
                 ticket={ticket}
+                density={density}
               />
             ))}
           </ul>
