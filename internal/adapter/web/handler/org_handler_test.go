@@ -52,9 +52,7 @@ func TestGetShareSettings(t *testing.T) {
 			ShareLinkToken:   &token,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "member"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("member", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 
 		req := httptest.NewRequest("GET", "/organizations/"+orgID.String()+"/share", nil)
@@ -97,9 +95,7 @@ func TestUpdateShareSettings(t *testing.T) {
 			ShareLinkToken:   nil,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "admin"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("admin", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
 			return o.ShareLinkEnabled == true && o.ShareLinkToken != nil
@@ -139,9 +135,7 @@ func TestGetPublicViewSettings(t *testing.T) {
 			PublicViewToken:   &token,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "member"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("member", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 
 		req := httptest.NewRequest("GET", "/organizations/"+orgID.String()+"/public-view", nil)
@@ -184,9 +178,7 @@ func TestUpdatePublicViewSettings(t *testing.T) {
 			PublicViewToken:   nil,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "admin"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("admin", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
 			return o.PublicViewEnabled == true && o.PublicViewToken != nil
@@ -226,9 +218,7 @@ func TestRegeneratePublicViewToken(t *testing.T) {
 			PublicViewToken:   &oldToken,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("owner", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
 			return o.PublicViewToken != nil && *o.PublicViewToken != oldToken
@@ -266,9 +256,7 @@ func TestRegenerateShareToken(t *testing.T) {
 			ShareLinkToken:   &oldToken,
 		}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("owner", nil)
 		mockOrgRepo.On("GetByID", mock.Anything, orgID).Return(org, nil)
 		mockOrgRepo.On("Update", mock.Anything, mock.MatchedBy(func(o *domain.Organization) bool {
 			return o.ShareLinkToken != nil && *o.ShareLinkToken != oldToken
@@ -299,9 +287,7 @@ func TestUpdateMemberRole(t *testing.T) {
 		userID := uuid.New()
 		user := &domain.User{ID: userID}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("owner", nil)
 
 		// ListMembers: Return only 1 owner (the user)
 		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
@@ -328,9 +314,7 @@ func TestUpdateMemberRole(t *testing.T) {
 		otherOwnerID := uuid.New()
 		user := &domain.User{ID: userID}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, userID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return("owner", nil)
 
 		// ListMembers: Return 2 owners
 		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
@@ -359,9 +343,7 @@ func TestUpdateMemberRole(t *testing.T) {
 		memberID := uuid.New()
 		user := &domain.User{ID: ownerID}
 
-		mockOrgRepo.On("ListByUser", mock.Anything, ownerID).Return([]domain.UserMembership{
-			{Organization: domain.Organization{ID: orgID}, Role: "owner"},
-		}, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, ownerID).Return("owner", nil)
 
 		// ListMembers: Owner and Member
 		mockOrgRepo.On("ListMembers", mock.Anything, orgID).Return([]domain.Member{
