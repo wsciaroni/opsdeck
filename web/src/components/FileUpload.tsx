@@ -71,16 +71,17 @@ export default function FileUpload({
           {files.map((file, index) => (
             <li key={index} className="text-sm text-gray-500 flex items-center justify-between py-1">
               <div className="flex items-center min-w-0">
-                <Paperclip className="h-3 w-3 mr-2 text-gray-400 flex-shrink-0" />
+                <Paperclip className="h-3 w-3 mr-2 text-gray-500 flex-shrink-0" />
                 <span className="truncate">
-                  {file.name} <span className="text-gray-500 text-xs ml-1">({formatBytes(file.size)})</span>
+                  {file.name} <span className="text-gray-600 text-xs ml-1">({formatBytes(file.size)})</span>
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => removeFile(index)}
-                className="ml-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-600"
+                className="ml-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:text-gray-800 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 rounded-sm"
                 aria-label={`Remove ${file.name}`}
+                title={`Remove ${file.name}`}
               >
                 <X className="h-4 w-4" />
               </button>
