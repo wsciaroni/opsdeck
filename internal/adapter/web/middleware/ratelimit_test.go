@@ -131,3 +131,39 @@ func TestRateLimiter_IPv6(t *testing.T) {
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusTooManyRequests, w.Code)
 }
+
+func TestRateLimiter_Eviction(t *testing.T) {
+	// Setup with maxClients = 2
+	limit := 5
+	window := time.Minute
+	rl := NewRateLimiter(limit, window)
+	rl.maxClients = 2
+
+	handler := rl.Limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Fill the map (2 clients)
+	clients := []string{"127.0.0.1:1001", "127.0.0.2:1002"}
+	for _, ip := range clients {
+		req := httptest.NewRequest("GET", "/", nil)
+		req.RemoteAddr = ip
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusOK, w.Code)
+	}
+
+	// Verify map size
+	assert.Equal(t, 2, len(rl.clients))
+
+	// Add 3rd client (should evict one of existing)
+	req3 := httptest.NewRequest("GET", "/", nil)
+	req3.RemoteAddr = "127.0.0.3:1003"
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req3)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Verify map size is still 2 (eviction happened, not wipe)
+	// If wipe happened, size would be 1.
+	assert.Equal(t, 2, len(rl.clients))
+}
