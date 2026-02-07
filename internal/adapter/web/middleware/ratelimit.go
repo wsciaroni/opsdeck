@@ -7,28 +7,27 @@ import (
 	"time"
 )
 
-// maxClients prevents memory exhaustion (DoS) by limiting the map size.
-const maxClients = 10000
-
 type client struct {
 	count     int
 	expiresAt time.Time
 }
 
 type RateLimiter struct {
-	mu      sync.Mutex
-	clients map[string]*client
-	limit   int
-	window  time.Duration
-	stop    chan struct{}
+	mu         sync.Mutex
+	clients    map[string]*client
+	limit      int
+	window     time.Duration
+	stop       chan struct{}
+	maxClients int
 }
 
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 	rl := &RateLimiter{
-		clients: make(map[string]*client),
-		limit:   limit,
-		window:  window,
-		stop:    make(chan struct{}),
+		clients:    make(map[string]*client),
+		limit:      limit,
+		window:     window,
+		stop:       make(chan struct{}),
+		maxClients: 10000,
 	}
 	go rl.cleanup()
 	return rl
@@ -77,11 +76,13 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 
 		c, exists := rl.clients[ip]
 
-		// DoS Protection: If map is full, and we need to add a new entry, reset it.
-		// This is a simple strategy to prevent OOM.
-		if !exists && len(rl.clients) >= maxClients {
-			rl.clients = make(map[string]*client)
-			exists = false // ensure we treat as new
+		// DoS Protection: If map is full, and we need to add a new entry, evict a random one.
+		// This prevents OOM while maintaining rate limits for other users.
+		if !exists && len(rl.clients) >= rl.maxClients {
+			for k := range rl.clients {
+				delete(rl.clients, k)
+				break
+			}
 		}
 		if !exists || time.Now().After(c.expiresAt) {
 			rl.clients[ip] = &client{count: 1, expiresAt: time.Now().Add(rl.window)}
