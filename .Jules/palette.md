@@ -43,3 +43,7 @@
 ## 2026-05-24 - Text Contrast for Secondary Information
 **Learning:** `text-gray-400` (Tailwind) is often used for timestamps or metadata but fails WCAG AA contrast ratios on white backgrounds, especially for small text (`text-xs`).
 **Action:** Use `text-gray-500` for standard text and `text-gray-600` for small text (`text-xs`) to ensure readability while maintaining visual hierarchy.
+
+## 2026-05-25 - Icon Contrast and Focus
+**Learning:** Decorative and functional icons using `text-gray-400` often fail contrast requirements on white backgrounds. Also, small remove buttons in lists need clear focus rings to be usable by keyboard users.
+**Action:** Use `text-gray-500` as the minimum darkness for icons on white backgrounds. Ensure all interactive list items (like remove buttons) have `focus-visible:ring-2` styles.
