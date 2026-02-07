@@ -141,22 +141,7 @@ func (h *OrgHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check Permissions (Must be owner or admin of the org)
-	memberships, err := h.orgRepo.ListByUser(r.Context(), currentUser.ID)
-	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	isAuthorized := false
-	for _, m := range memberships {
-		if m.Organization.ID == orgID && (m.Role == "owner" || m.Role == "admin") {
-			isAuthorized = true
-			break
-		}
-	}
-
-	if !isAuthorized {
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -216,22 +201,7 @@ func (h *OrgHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check Membership (Any role can view)
-	memberships, err := h.orgRepo.ListByUser(r.Context(), currentUser.ID)
-	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	isMember := false
-	for _, m := range memberships {
-		if m.Organization.ID == orgID {
-			isMember = true
-			break
-		}
-	}
-
-	if !isMember {
+	if !h.isMember(r.Context(), orgID, currentUser.ID) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -276,24 +246,15 @@ func (h *OrgHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	// Check Permissions
 	// 1. Owner can remove anyone.
 	// 2. User can remove themselves (leave org).
-	memberships, err := h.orgRepo.ListByUser(r.Context(), currentUser.ID)
+	// Optimize: Use direct role lookup
+	currentMemberRole, err := h.orgRepo.GetMemberRole(r.Context(), orgID, currentUser.ID)
 	if err != nil {
-		h.logger.Error("failed to list user memberships", "error", err)
+		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	var currentMemberRole string
-	isMember := false
-	for _, m := range memberships {
-		if m.Organization.ID == orgID {
-			isMember = true
-			currentMemberRole = m.Role
-			break
-		}
-	}
-
-	if !isMember {
+	if currentMemberRole == "" {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -590,29 +551,21 @@ func (h *OrgHandler) RegenerateShareToken(w http.ResponseWriter, r *http.Request
 }
 
 func (h *OrgHandler) isMember(ctx context.Context, orgID, userID uuid.UUID) bool {
-	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	// Optimize: Use direct role lookup
+	role, err := h.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
 		return false
 	}
-	for _, m := range memberships {
-		if m.Organization.ID == orgID {
-			return true
-		}
-	}
-	return false
+	return role != ""
 }
 
 func (h *OrgHandler) isAdminOrOwner(ctx context.Context, orgID, userID uuid.UUID) bool {
-	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	// Optimize: Use direct role lookup
+	role, err := h.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
 		return false
 	}
-	for _, m := range memberships {
-		if m.Organization.ID == orgID && (m.Role == "owner" || m.Role == "admin") {
-			return true
-		}
-	}
-	return false
+	return role == "owner" || role == "admin"
 }
 
 func generateToken() string {
