@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TicketList from './TicketList';
 import { BrowserRouter } from 'react-router-dom';
 import type { Ticket } from '../../types';
@@ -14,20 +14,22 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-// Mock matchMedia for Desktop view (matches: true for min-width: 768px)
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: query === '(min-width: 768px)',
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+// Helper to toggle desktop/mobile view
+function setMatchMedia(isDesktop: boolean) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: isDesktop ? query === '(min-width: 768px)' : false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 const mockTickets: Ticket[] = [
   {
@@ -49,78 +51,163 @@ const mockTickets: Ticket[] = [
 ];
 
 describe('TicketList', () => {
-  it('renders ticket list correctly', () => {
-    render(
-      <BrowserRouter>
-        <TicketList
-          tickets={mockTickets}
-          isLoading={false}
-          error={null}
-          density="standard"
-          onOpenNewTicket={() => {}}
-        />
-      </BrowserRouter>
-    );
-    // Use getAllByText because it renders in both mobile and desktop views
-    expect(screen.getAllByText('Test Ticket').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0);
+  beforeEach(() => {
+    // Default to Desktop View for existing tests
+    setMatchMedia(true);
   });
 
-  it('navigates on row click', () => {
-    render(
-      <BrowserRouter>
-        <TicketList
-          tickets={mockTickets}
-          isLoading={false}
-          error={null}
-          density="standard"
-          onOpenNewTicket={() => {}}
-        />
-      </BrowserRouter>
-    );
-
-    // Find the text specifically inside the table row (td)
-    // We can look for the row directly if we can identify it, but text is easier.
-    const titleCells = screen.getAllByText('Test Ticket');
-    // Find the one that is inside a td (desktop view) or we can just pick the second one if we know order?
-    // Better: find closest tr.
-    const desktopTitle = titleCells.find(el => el.closest('tr'));
-
-    expect(desktopTitle).toBeInTheDocument();
-
-    if (desktopTitle) {
-        const row = desktopTitle.closest('tr');
-        expect(row).toBeInTheDocument();
-        if (row) {
-            fireEvent.click(row);
-            expect(mockNavigate).toHaveBeenCalledWith('/tickets/123');
-        }
-    }
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
   });
 
-  it('navigates on row Enter key press', () => {
-    render(
-      <BrowserRouter>
-        <TicketList
+  describe('Desktop View', () => {
+    it('renders ticket list correctly', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
             tickets={mockTickets}
             isLoading={false}
             error={null}
             density="standard"
             onOpenNewTicket={() => {}}
-        />
-      </BrowserRouter>
-    );
+          />
+        </BrowserRouter>
+      );
+      // Use getAllByText because it renders in both mobile and desktop views
+      expect(screen.getAllByText('Test Ticket').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0);
+    });
 
-    const titleCells = screen.getAllByText('Test Ticket');
-    const desktopTitle = titleCells.find(el => el.closest('tr'));
-    expect(desktopTitle).toBeInTheDocument();
+    it('navigates on row click', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+          />
+        </BrowserRouter>
+      );
 
-    if (desktopTitle) {
-        const row = desktopTitle.closest('tr');
-        if (row) {
-            fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
-            expect(mockNavigate).toHaveBeenCalledWith('/tickets/123');
-        }
-    }
+      const titleCells = screen.getAllByText('Test Ticket');
+      // Find the one that is inside a td (desktop view) or we can just pick the second one if we know order?
+      // Better: find closest tr.
+      const desktopTitle = titleCells.find(el => el.closest('tr'));
+
+      expect(desktopTitle).toBeInTheDocument();
+
+      if (desktopTitle) {
+          const row = desktopTitle.closest('tr');
+          expect(row).toBeInTheDocument();
+          if (row) {
+              fireEvent.click(row);
+              expect(mockNavigate).toHaveBeenCalledWith('/tickets/123');
+          }
+      }
+    });
+
+    it('navigates on row Enter key press', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
+              tickets={mockTickets}
+              isLoading={false}
+              error={null}
+              density="standard"
+              onOpenNewTicket={() => {}}
+          />
+        </BrowserRouter>
+      );
+
+      const titleCells = screen.getAllByText('Test Ticket');
+      const desktopTitle = titleCells.find(el => el.closest('tr'));
+      expect(desktopTitle).toBeInTheDocument();
+
+      if (desktopTitle) {
+          const row = desktopTitle.closest('tr');
+          if (row) {
+              fireEvent.keyDown(row, { key: 'Enter', code: 'Enter' });
+              expect(mockNavigate).toHaveBeenCalledWith('/tickets/123');
+          }
+      }
+    });
+  });
+
+  describe('Mobile View', () => {
+    beforeEach(() => {
+      setMatchMedia(false);
+    });
+
+    it('renders mobile card with compact density', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="compact"
+            onOpenNewTicket={() => {}}
+          />
+        </BrowserRouter>
+      );
+
+      const buttons = screen.getAllByRole('button');
+      const cardButton = buttons.find(b => b.textContent?.includes('Test Ticket'));
+
+      expect(cardButton).toBeDefined();
+      expect(cardButton).toHaveClass('py-2');
+
+      const title = screen.getByRole('heading', { level: 3 });
+      expect(title).toHaveClass('text-xs');
+    });
+
+    it('renders mobile card with standard density', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+          />
+        </BrowserRouter>
+      );
+
+      const buttons = screen.getAllByRole('button');
+      const cardButton = buttons.find(b => b.textContent?.includes('Test Ticket'));
+
+      expect(cardButton).toBeDefined();
+      expect(cardButton).toHaveClass('py-4');
+
+      const title = screen.getByRole('heading', { level: 3 });
+      expect(title).toHaveClass('text-sm');
+    });
+
+    it('renders mobile card with comfortable density', () => {
+      render(
+        <BrowserRouter>
+          <TicketList
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="comfortable"
+            onOpenNewTicket={() => {}}
+          />
+        </BrowserRouter>
+      );
+
+      const buttons = screen.getAllByRole('button');
+      const cardButton = buttons.find(b => b.textContent?.includes('Test Ticket'));
+
+      expect(cardButton).toBeDefined();
+      expect(cardButton).toHaveClass('py-6');
+
+      const title = screen.getByRole('heading', { level: 3 });
+      expect(title).toHaveClass('text-base');
+    });
   });
 });
