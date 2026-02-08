@@ -55,20 +55,11 @@ export default function Dashboard() {
   });
 
   // Filter states
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [priority, setPriority] = useState<string[] | undefined>(undefined);
   const [status, setStatus] = useState<string[] | undefined>(undefined);
   const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem('dashboard_sort_by') || 'created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (localStorage.getItem('dashboard_sort_order') as 'asc' | 'desc') || 'desc');
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   // Persist preferences
   useEffect(() => {
@@ -88,8 +79,8 @@ export default function Dashboard() {
   }, [sortOrder]);
 
   const { data: tickets, isLoading, error } = useQuery({
-    queryKey: ['tickets', currentOrg?.id, debouncedSearch, priority, status, sortBy, sortOrder],
-    queryFn: () => getTickets(currentOrg!.id, { search: debouncedSearch, priority, status, sort_by: sortBy, sort_order: sortOrder }),
+    queryKey: ['tickets', currentOrg?.id, searchQuery, priority, status, sortBy, sortOrder],
+    queryFn: () => getTickets(currentOrg!.id, { search: searchQuery, priority, status, sort_by: sortBy, sort_order: sortOrder }),
     enabled: !!currentOrg,
   });
 
@@ -110,8 +101,7 @@ export default function Dashboard() {
         setViewMode={setViewMode}
         density={density}
         setDensity={setDensity}
-        search={search}
-        setSearch={setSearch}
+        onSearch={setSearchQuery}
         priority={priority}
         setPriority={setPriority}
         status={status}

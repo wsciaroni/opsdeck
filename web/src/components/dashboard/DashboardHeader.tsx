@@ -3,6 +3,7 @@ import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
 import FilterPopover from './FilterPopover';
+import { useState, useEffect } from 'react';
 
 interface DashboardHeaderProps {
   currentOrg: Organization | null;
@@ -11,8 +12,7 @@ interface DashboardHeaderProps {
   setViewMode: (mode: 'list' | 'board') => void;
   density: Density;
   setDensity: (density: Density) => void;
-  search: string;
-  setSearch: (search: string) => void;
+  onSearch: (query: string) => void;
   priority: string[] | undefined;
   setPriority: (priority: string[] | undefined) => void;
   status: string[] | undefined;
@@ -30,8 +30,7 @@ export default function DashboardHeader({
   setViewMode,
   density,
   setDensity,
-  search,
-  setSearch,
+  onSearch,
   priority,
   setPriority,
   status,
@@ -41,6 +40,15 @@ export default function DashboardHeader({
   sortOrder,
   setSortOrder,
 }: DashboardHeaderProps) {
+  const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue, onSearch]);
+
   return (
     <div className="mb-6">
       <div className="sm:flex sm:items-center sm:justify-between">
@@ -77,14 +85,14 @@ export default function DashboardHeader({
                     id="search"
                     className="block w-full rounded-md border-gray-300 pl-10 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
                     placeholder="Search tickets..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
                 />
-                {search && (
+                {inputValue && (
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                     <button
                       type="button"
-                      onClick={() => setSearch('')}
+                      onClick={() => setInputValue('')}
                       className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
                       aria-label="Clear search"
                     >
