@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import DashboardHeader from './DashboardHeader';
 import { BrowserRouter } from 'react-router-dom';
-import { Organization } from '../../types';
+import type { Organization } from '../../types';
 
 // Mock dependencies
 vi.mock('./FilterPopover', () => ({
