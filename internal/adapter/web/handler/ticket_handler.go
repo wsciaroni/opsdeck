@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -200,7 +201,7 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 				}
 
 				files = append(files, domain.File{
-					Filename:    fileHeader.Filename,
+					Filename:    sanitizeFilename(fileHeader.Filename),
 					ContentType: fileHeader.Header.Get("Content-Type"),
 					Size:        fileHeader.Size,
 					Data:        data,
@@ -474,7 +475,7 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 				}
 
 				files = append(files, domain.File{
-					Filename:    fileHeader.Filename,
+					Filename:    sanitizeFilename(fileHeader.Filename),
 					ContentType: fileHeader.Header.Get("Content-Type"),
 					Size:        fileHeader.Size,
 					Data:        data,
@@ -841,4 +842,13 @@ func sanitizeCSV(s string) string {
 		return "'" + s
 	}
 	return s
+}
+
+func sanitizeFilename(name string) string {
+	name = filepath.Base(name)
+	name = strings.ReplaceAll(name, "\"", "_")
+	name = strings.ReplaceAll(name, ";", "_")
+	name = strings.ReplaceAll(name, "\n", "_")
+	name = strings.ReplaceAll(name, "\r", "_")
+	return name
 }
