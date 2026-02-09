@@ -3,7 +3,7 @@ import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
 import FilterPopover from './FilterPopover';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 
 interface DashboardHeaderProps {
   currentOrg: Organization | null;
@@ -23,7 +23,8 @@ interface DashboardHeaderProps {
   setSortOrder: (sortOrder: 'asc' | 'desc') => void;
 }
 
-export default function DashboardHeader({
+// Memoized to prevent unnecessary re-renders when parent Dashboard updates (e.g. on data fetch)
+const DashboardHeader = memo(function DashboardHeader({
   currentOrg,
   onOpenNewTicket,
   viewMode,
@@ -175,4 +176,6 @@ export default function DashboardHeader({
       </div>
     </div>
   );
-}
+});
+
+export default DashboardHeader;
