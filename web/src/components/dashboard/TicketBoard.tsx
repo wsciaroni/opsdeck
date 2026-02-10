@@ -1,5 +1,5 @@
 import { useMemo, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import { type Ticket, TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
@@ -17,22 +17,32 @@ interface TicketBoardProps {
 interface TicketCardProps {
   ticket: Ticket;
   density: Density;
+  navigate: NavigateFunction;
 }
 
-const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps) {
-  const navigate = useNavigate();
+// Optimization: Hoist style constants to prevent object allocation on every render
+const PADDING_CLASSES: Record<Density, string> = {
+  compact: 'p-2',
+  standard: 'p-4',
+  comfortable: 'p-6',
+};
 
-  const paddingClass = {
-    compact: 'p-2',
-    standard: 'p-4',
-    comfortable: 'p-6',
-  }[density];
+const FONT_SIZE_CLASSES: Record<Density, string> = {
+  compact: 'text-xs',
+  standard: 'text-sm',
+  comfortable: 'text-base',
+};
 
-  const fontSizeClass = {
-    compact: 'text-xs',
-    standard: 'text-sm',
-    comfortable: 'text-base',
-  }[density];
+const COLUMN_WIDTH_CLASSES: Record<Density, string> = {
+  compact: 'min-w-[14rem]',
+  standard: 'min-w-[16rem]',
+  comfortable: 'min-w-[18rem]',
+};
+
+const TicketCard = memo(function TicketCard({ ticket, density, navigate }: TicketCardProps) {
+  // Optimization: use pre-defined constants
+  const paddingClass = PADDING_CLASSES[density];
+  const fontSizeClass = FONT_SIZE_CLASSES[density];
 
   const handleKeyDown = (e: React.KeyboardEvent, ticketId: string) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -82,6 +92,9 @@ const TicketBoard = memo(function TicketBoard({
   density,
   visibleStatuses,
 }: TicketBoardProps) {
+  // Optimization: Hoist useNavigate to avoid calling it in every card
+  const navigate = useNavigate();
+
   // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
   const ticketsByStatus = useMemo(() => {
     return (tickets || []).reduce((acc, ticket) => {
@@ -100,11 +113,7 @@ const TicketBoard = memo(function TicketBoard({
     return TICKET_STATUSES.filter((status) => !status.isFinished);
   }, [visibleStatuses]);
 
-  const columnWidthClass = {
-    compact: 'min-w-[14rem]',
-    standard: 'min-w-[16rem]',
-    comfortable: 'min-w-[18rem]',
-  }[density];
+  const columnWidthClass = COLUMN_WIDTH_CLASSES[density];
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading tickets...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error loading tickets</div>;
@@ -127,7 +136,12 @@ const TicketBoard = memo(function TicketBoard({
           </div>
           <div className="p-2 overflow-y-auto flex-1 space-y-2">
             {ticketsByStatus[column.id]?.map((ticket) => (
-              <TicketCard key={ticket.id} ticket={ticket} density={density} />
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                density={density}
+                navigate={navigate}
+              />
             ))}
             {!ticketsByStatus[column.id]?.length && (
               <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>

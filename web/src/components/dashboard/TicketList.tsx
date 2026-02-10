@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import type { Ticket } from '../../types';
 import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
@@ -7,6 +7,25 @@ import clsx from 'clsx';
 import { memo, useState, useEffect } from 'react';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
+
+// Optimization: Hoist style constants to prevent object allocation on every render
+const PADDING_CLASSES: Record<Density, string> = {
+  compact: 'py-2',
+  standard: 'py-4',
+  comfortable: 'py-6',
+};
+
+const FONT_SIZE_CLASSES: Record<Density, string> = {
+  compact: 'text-xs',
+  standard: 'text-sm',
+  comfortable: 'text-base',
+};
+
+const METADATA_FONT_SIZE_CLASSES: Record<Density, string> = {
+  compact: 'text-xs',
+  standard: 'text-xs',
+  comfortable: 'text-sm',
+};
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() => {
@@ -33,26 +52,11 @@ interface TicketListProps {
   onOpenNewTicket: () => void;
 }
 
-const MobileTicketCard = memo(function MobileTicketCard({ ticket, density }: { readonly ticket: Ticket, density: Density }) {
-  const navigate = useNavigate();
-
-  const paddingClass = {
-    compact: 'py-2',
-    standard: 'py-4',
-    comfortable: 'py-6',
-  }[density];
-
-  const fontSizeClass = {
-    compact: 'text-xs',
-    standard: 'text-sm',
-    comfortable: 'text-base',
-  }[density];
-
-  const metadataFontSizeClass = {
-    compact: 'text-xs',
-    standard: 'text-xs',
-    comfortable: 'text-sm',
-  }[density];
+const MobileTicketCard = memo(function MobileTicketCard({ ticket, density, navigate }: { readonly ticket: Ticket, density: Density, navigate: NavigateFunction }) {
+  // Optimization: use pre-defined constants
+  const paddingClass = PADDING_CLASSES[density];
+  const fontSizeClass = FONT_SIZE_CLASSES[density];
+  const metadataFontSizeClass = METADATA_FONT_SIZE_CLASSES[density];
 
   return (
     <li className="block bg-white hover:bg-gray-50 cursor-pointer">
@@ -80,20 +84,10 @@ const MobileTicketCard = memo(function MobileTicketCard({ ticket, density }: { r
   );
 });
 
-const TicketRow = memo(function TicketRow({ ticket, density }: { ticket: Ticket; density: Density }) {
-  const navigate = useNavigate();
-
-  const paddingClass = {
-    compact: 'py-2',
-    standard: 'py-4',
-    comfortable: 'py-6',
-  }[density];
-
-  const fontSizeClass = {
-    compact: 'text-xs',
-    standard: 'text-sm',
-    comfortable: 'text-base',
-  }[density];
+const TicketRow = memo(function TicketRow({ ticket, density, navigate }: { ticket: Ticket; density: Density, navigate: NavigateFunction }) {
+  // Optimization: use pre-defined constants
+  const paddingClass = PADDING_CLASSES[density];
+  const fontSizeClass = FONT_SIZE_CLASSES[density];
 
   return (
     <tr
@@ -131,6 +125,9 @@ const TicketList = memo(function TicketList({ tickets, isLoading, error, density
   // Optimization: Conditionally render mobile or desktop view to reduce DOM nodes by ~50%
   const isDesktop = useIsDesktop();
 
+  // Optimization: Hoist useNavigate to avoid calling it in every row item
+  const navigate = useNavigate();
+
   if (isLoading) {
     return <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">Loading tickets...</div>;
   }
@@ -150,11 +147,18 @@ const TicketList = memo(function TicketList({ tickets, isLoading, error, density
             <button
               type="button"
               onClick={onOpenNewTicket}
-              title="Press 'c' to create new ticket"
+              title="Create new ticket"
+              aria-keyshortcuts="c"
               className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Ticket
+              <span
+                className="ml-2 hidden sm:inline-flex items-center rounded bg-white/20 px-1.5 py-0.5 text-xs font-semibold leading-none text-white"
+                aria-hidden="true"
+              >
+                C
+              </span>
             </button>
           }
         />
@@ -173,6 +177,7 @@ const TicketList = memo(function TicketList({ tickets, isLoading, error, density
                 key={ticket.id}
                 ticket={ticket}
                 density={density}
+                navigate={navigate}
               />
             ))}
           </ul>
@@ -201,6 +206,7 @@ const TicketList = memo(function TicketList({ tickets, isLoading, error, density
                         key={ticket.id}
                         ticket={ticket}
                         density={density}
+                        navigate={navigate}
                       />
                     ))}
                   </tbody>

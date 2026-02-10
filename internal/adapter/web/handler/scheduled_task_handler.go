@@ -118,7 +118,8 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.verifyMembership(r.Context(), user.ID, req.OrganizationID); err != nil {
+	// Security Check: Only Admin/Owner can create tasks
+	if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -195,7 +196,8 @@ func (h *ScheduledTaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.verifyMembership(r.Context(), user.ID, task.OrganizationID); err != nil {
+	// Security Check: Only Admin/Owner can update tasks
+	if err := h.checkAdminOrOwner(r.Context(), user.ID, task.OrganizationID); err != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -248,7 +250,8 @@ func (h *ScheduledTaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.verifyMembership(r.Context(), user.ID, task.OrganizationID); err != nil {
+	// Security Check: Only Admin/Owner can delete tasks
+	if err := h.checkAdminOrOwner(r.Context(), user.ID, task.OrganizationID); err != nil {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -263,14 +266,24 @@ func (h *ScheduledTaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ScheduledTaskHandler) verifyMembership(ctx context.Context, userID, orgID uuid.UUID) error {
-	memberships, err := h.orgRepo.ListByUser(ctx, userID)
+	// Optimize: Use direct role lookup
+	role, err := h.orgRepo.GetMemberRole(ctx, orgID, userID)
 	if err != nil {
 		return err
 	}
-	for _, m := range memberships {
-		if m.ID == orgID {
-			return nil
-		}
+	if role == "" {
+		return fmt.Errorf("user not member of organization")
 	}
-	return fmt.Errorf("user not member of organization")
+	return nil
+}
+
+func (h *ScheduledTaskHandler) checkAdminOrOwner(ctx context.Context, userID, orgID uuid.UUID) error {
+	role, err := h.orgRepo.GetMemberRole(ctx, orgID, userID)
+	if err != nil {
+		return err
+	}
+	if role == "owner" || role == "admin" {
+		return nil
+	}
+	return fmt.Errorf("forbidden: requires admin or owner role")
 }
