@@ -47,3 +47,7 @@
 ## 2026-05-25 - Icon Contrast and Focus
 **Learning:** Decorative and functional icons using `text-gray-400` often fail contrast requirements on white backgrounds. Also, small remove buttons in lists need clear focus rings to be usable by keyboard users.
 **Action:** Use `text-gray-500` as the minimum darkness for icons on white backgrounds. Ensure all interactive list items (like remove buttons) have `focus-visible:ring-2` styles.
+
+## 2026-05-26 - Keyboard Shortcut Hints
+**Learning:** Adding visual keyboard shortcut hints (badges) significantly improves discoverability for power users, but they must be implemented with `aria-keyshortcuts` and `aria-hidden="true"` to ensure a good screen reader experience.
+**Action:** Always pair visual shortcut hints (e.g., "C" badge) with `aria-keyshortcuts` attributes on the interactive element.
