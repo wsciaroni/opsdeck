@@ -7,3 +7,8 @@
 **Vulnerability:** The `RateLimiter` middleware completely reset the client tracking map when it reached `maxClients`, allowing attackers to bypass rate limits by flooding the system with unique IPs to trigger a reset.
 **Learning:** Simple `if len >= max { map = make() }` logic creates a fail-open condition under load, neutralizing protection against distributed attacks.
 **Prevention:** Use random eviction or LRU for bounded maps instead of full reset. In Go, `for k := range m { delete(m, k); break }` provides O(1) random eviction.
+
+## 2025-02-23 - Privilege Escalation via Generic Membership Check
+**Vulnerability:** ScheduledTaskHandler only verified that a user was a 'member' of the organization to perform administrative actions (Create/Update/Delete), allowing any member to modify critical schedules.
+**Learning:** Generic `verifyMembership` checks are insufficient for sensitive operations. Always verify specific roles (e.g., 'owner', 'admin') or permissions.
+**Prevention:** Use `GetMemberRole` for explicit role verification instead of iterating `ListByUser`.
