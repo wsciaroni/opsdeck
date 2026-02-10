@@ -93,7 +93,7 @@ export default function DashboardHeader({
                     <button
                       type="button"
                       onClick={() => setInputValue('')}
-                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-full"
                       aria-label="Clear search"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />

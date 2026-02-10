@@ -1,6 +1,6 @@
 import { useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { type Ticket, TICKET_STATUSES } from '../../types';
+import { type Ticket, TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
 import { type Density } from './TicketList';
@@ -36,9 +36,13 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
 
   const handleKeyDown = (e: React.KeyboardEvent, ticketId: string) => {
     if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
       navigate(`/tickets/${ticketId}`);
     }
   };
+
+  const priorityLabel = TICKET_PRIORITIES.find(p => p.id === ticket.priority_id)?.label || ticket.priority_id;
+  const assigneeName = ticket.assignee_name || ticket.assignee_user_id || 'Unassigned';
 
   return (
     <div
@@ -46,6 +50,7 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
       tabIndex={0}
       onClick={() => navigate(`/tickets/${ticket.id}`)}
       onKeyDown={(e) => handleKeyDown(e, ticket.id)}
+      aria-label={`View ticket: ${ticket.title}. Priority: ${priorityLabel}. Assignee: ${assigneeName}`}
       className={clsx(
         "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
         paddingClass
@@ -57,7 +62,10 @@ const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps
             {new Date(ticket.created_at).toLocaleDateString()}
           </span>
       </div>
-      <h4 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
+      <h4
+        className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}
+        title={ticket.title}
+      >
         {ticket.title}
       </h4>
       <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
