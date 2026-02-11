@@ -691,6 +691,37 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Security Check: Get existing ticket and verify user membership BEFORE reading body
+	// This prevents DoS attacks where unauthorized users send large bodies
+	ticket, err := h.service.GetTicket(r.Context(), id)
+	if err != nil {
+		h.logger.Error("failed to get ticket", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if ticket == nil {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return
+	}
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
+	if err != nil {
+		h.logger.Error("failed to get member role", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if role == "" {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return
+	}
+
 	var req UpdateTicketRequest
 	// Limit request size to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
@@ -710,37 +741,6 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	if req.Description != nil && len(*req.Description) > 5000 {
 		http.Error(w, "Description too long", http.StatusBadRequest)
-		return
-	}
-
-	// Security Check: Get existing ticket and verify user membership
-	ticket, err := h.service.GetTicket(r.Context(), id)
-	if err != nil {
-		h.logger.Error("failed to get ticket", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if ticket == nil {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Optimize: Use direct role lookup to verify membership without fetching all orgs
-	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
-	if err != nil {
-		h.logger.Error("failed to get member role", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if role == "" {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
 

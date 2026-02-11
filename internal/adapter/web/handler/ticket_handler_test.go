@@ -1069,9 +1069,13 @@ func TestUpdateTicket(t *testing.T) {
 		setupMocks     func(*MockTicketService, *MockOrgRepo)
 	}{
 		{
-			name:           "DoS Prevention - Rejects body too large",
+			name:           "DoS Prevention - Rejects body too large (when authorized)",
 			body:           &LargeReader{Size: handler.MaxRequestSize + 1024},
 			expectedStatus: http.StatusRequestEntityTooLarge,
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
+			},
 		},
 		{
 			name: "DoS Prevention - Rejects title too long",
@@ -1081,16 +1085,8 @@ func TestUpdateTicket(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectError:    "Title",
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
-				// No mocks needed because validation happens before DB calls?
-				// Actually handler does Decode -> Validation -> DB calls.
-				// Wait, the new logic:
-				// 1. Decode
-				// 2. Validate
-				// 3. DB Calls (GetTicket -> Check Auth)
-				// The previous test mock calls for GetTicket/ListByUser because validation was assumed to be after?
-				// Let's check the code.
-				// Validation happens *after* decode but *before* GetTicket.
-				// So no mocks needed for validation failure!
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 			},
 		},
 		{
@@ -1101,7 +1097,8 @@ func TestUpdateTicket(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectError:    "Description",
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
-				// No mocks needed
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 			},
 		},
 		{
