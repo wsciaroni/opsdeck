@@ -51,3 +51,7 @@
 ## 2026-05-26 - Keyboard Shortcut Hints
 **Learning:** Adding visual keyboard shortcut hints (badges) significantly improves discoverability for power users, but they must be implemented with `aria-keyshortcuts` and `aria-hidden="true"` to ensure a good screen reader experience.
 **Action:** Always pair visual shortcut hints (e.g., "C" badge) with `aria-keyshortcuts` attributes on the interactive element.
+
+## 2026-05-27 - Search Input Clear Button Focus
+**Learning:** Absolute positioned interactive elements inside inputs (like "Clear search") are often implemented with `focus:outline-none` to avoid ugly default outlines, but this removes all focus indication for keyboard users.
+**Action:** Always replace `focus:outline-none` with `focus:ring-2` (and `focus:ring-offset-2`) on absolute positioned buttons to ensure keyboard navigability and visibility.
