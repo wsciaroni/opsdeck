@@ -1,10 +1,9 @@
-import { Plus, List, Layout } from 'lucide-react';
+import { Plus, List, Layout, Search, X } from 'lucide-react';
 import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
 import FilterPopover from './FilterPopover';
-import SearchInput from './SearchInput';
-import { memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 
 interface DashboardHeaderProps {
   currentOrg: Organization | null;
@@ -42,6 +41,14 @@ const DashboardHeader = memo(function DashboardHeader({
   sortOrder,
   setSortOrder,
 }: DashboardHeaderProps) {
+  const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue, onSearch]);
 
   return (
     <div className="mb-6">
@@ -75,7 +82,33 @@ const DashboardHeader = memo(function DashboardHeader({
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         {/* Left controls: Search & Filters */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-            <SearchInput onSearch={onSearch} placeholder="Search tickets..." />
+            <div className="relative rounded-md shadow-sm w-full sm:w-64">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                </div>
+                <label htmlFor="search" className="sr-only">Search tickets</label>
+                <input
+                    type="text"
+                    name="search"
+                    id="search"
+                    className="block w-full rounded-md border-gray-300 pl-10 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
+                    placeholder="Search tickets..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                />
+                {inputValue && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <button
+                      type="button"
+                      onClick={() => setInputValue('')}
+                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+            </div>
 
             <FilterPopover
                 status={status}
