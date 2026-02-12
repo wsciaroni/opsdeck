@@ -198,11 +198,16 @@ func TestScheduledTaskHandler_Security(t *testing.T) {
 	})
 
 	t.Run("DoS Prevention - Update Task Body Too Large", func(t *testing.T) {
+		// Expect GetTask and Auth check because we moved them before body read
+		taskID := uuid.New()
+		task := &domain.ScheduledTask{ID: taskID, OrganizationID: orgID}
+		mockService.On("GetTask", mock.Anything, taskID).Return(task, nil)
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("owner", nil)
+
 		padding := RepeatString("A", 1048576)
 		reqBody := map[string]string{"title": padding}
 		bodyBytes, _ := json.Marshal(reqBody)
 
-		taskID := uuid.New()
 		req := httptest.NewRequest("PATCH", "/scheduled-tasks/"+taskID.String(), bytes.NewReader(bodyBytes))
 		req.Header.Set("Content-Type", "application/json")
 

@@ -1069,9 +1069,13 @@ func TestUpdateTicket(t *testing.T) {
 		setupMocks     func(*MockTicketService, *MockOrgRepo)
 	}{
 		{
-			name:           "DoS Prevention - Rejects body too large",
+			name:           "DoS Prevention - Rejects body too large (when authorized)",
 			body:           &LargeReader{Size: handler.MaxRequestSize + 1024},
 			expectedStatus: http.StatusRequestEntityTooLarge,
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
+			},
 		},
 		{
 			name: "DoS Prevention - Rejects title too long",
@@ -1081,16 +1085,8 @@ func TestUpdateTicket(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectError:    "Title",
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
-				// No mocks needed because validation happens before DB calls?
-				// Actually handler does Decode -> Validation -> DB calls.
-				// Wait, the new logic:
-				// 1. Decode
-				// 2. Validate
-				// 3. DB Calls (GetTicket -> Check Auth)
-				// The previous test mock calls for GetTicket/ListByUser because validation was assumed to be after?
-				// Let's check the code.
-				// Validation happens *after* decode but *before* GetTicket.
-				// So no mocks needed for validation failure!
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 			},
 		},
 		{
@@ -1101,7 +1097,8 @@ func TestUpdateTicket(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectError:    "Description",
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
-				// No mocks needed
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
 			},
 		},
 		{
@@ -1218,6 +1215,51 @@ func TestUpdateTicket_CrossOrg(t *testing.T) {
 
 	// Should be NotFound (404)
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// TestUpdateTicket_DoSPrevention verifies that authorization checks happen BEFORE body parsing.
+// If body parsing happens first, a large body triggers 413 Payload Too Large.
+// If auth happens first, an unauthorized user gets 404 (Ticket Not Found for them) or 403 Forbidden without reading the body.
+func TestUpdateTicket_DoSPrevention(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	// We don't need UserRepo for this test as we inject user in context
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+	r := chi.NewRouter()
+	r.Patch("/tickets/{ticketID}", h.UpdateTicket)
+
+	// User belongs to Org A
+	user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
+	// Ticket belongs to Org B
+	orgB := uuid.New()
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgB}
+
+	// Mock Expectation: GetTicket IS called
+	mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+	// Mock Expectation: GetMemberRole IS called and returns "" (unauthorized)
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgB, user.ID).Return("", nil)
+
+	// Create a large body reader (larger than 32MB)
+	// MaxRequestSize is 32MB. We send 32MB + 1KB.
+	largeBody := &LargeReader{Size: (32 << 20) + 1024}
+
+	req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), largeBody)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Inject User
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// DESIRED BEHAVIOR: 404 Not Found (because auth check fails before reading body)
+
+	// We expect 404 because the handler returns 404 if ticket is not found for the user (auth check).
+	// If it returns 413, it means it read the body first.
+	assert.Equal(t, http.StatusNotFound, w.Code, "Expected 404 Not Found, confirming auth check happened before body read")
 }
 
 func TestGetTicketFile_CrossOrg(t *testing.T) {
