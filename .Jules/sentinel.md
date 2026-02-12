@@ -12,8 +12,3 @@
 **Vulnerability:** ScheduledTaskHandler only verified that a user was a 'member' of the organization to perform administrative actions (Create/Update/Delete), allowing any member to modify critical schedules.
 **Learning:** Generic `verifyMembership` checks are insufficient for sensitive operations. Always verify specific roles (e.g., 'owner', 'admin') or permissions.
 **Prevention:** Use `GetMemberRole` for explicit role verification instead of iterating `ListByUser`.
-
-## 2025-02-23 - DoS via Excessive Body Limit on JSON Endpoints
-**Vulnerability:** `TicketHandler` used a single `MaxRequestSize` (32MB) designed for file uploads across all endpoints, allowing attackers to exhaust memory by sending large JSON payloads to `UpdateTicket` (which only requires small text updates).
-**Learning:** Validating input length (e.g., `len(title) > 200`) *after* decoding the full request body is insufficient for DoS protection because the memory is already allocated.
-**Prevention:** Enforce strict body size limits (e.g., 1MB via `MaxJSONBodySize`) for JSON endpoints using `http.MaxBytesReader` *before* decoding, and reserve larger limits only for `multipart/form-data` requests.

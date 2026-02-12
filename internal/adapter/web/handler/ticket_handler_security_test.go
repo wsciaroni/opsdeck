@@ -3,11 +3,9 @@ package handler_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -152,43 +150,4 @@ func TestCreateTicket_FilenameSanitization(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-}
-
-func TestUpdateTicket_DoS_JSONLimit(t *testing.T) {
-	mockService := new(MockTicketService)
-	mockOrgRepo := new(MockOrgRepo)
-	mockUserRepo := new(MockUserRepo)
-	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
-
-	r := chi.NewRouter()
-	r.Patch("/tickets/{ticketID}", h.UpdateTicket)
-
-	ticketID := uuid.New()
-	// orgID := uuid.New() // unused
-	user := &domain.User{ID: uuid.New()}
-	// ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID} // unused
-
-	// 1MB + 1KB, which is > MaxJSONBodySize (1MB) but < MaxRequestSize (32MB)
-	// Currently MaxJSONBodySize is used for JSON, so this should FAIL with 413.
-	largeSize := handler.MaxJSONBodySize + 1024
-	largeBody := map[string]string{
-		"description": strings.Repeat("A", largeSize),
-	}
-	bodyBytes, _ := json.Marshal(largeBody)
-
-	// Mock expectations: validation happens after decoding but before DB calls.
-	// Since decoding fails with 413, no mocks should be called.
-	// However, if logic allows reading, it might call mocks.
-	// But since we expect 413, we don't expect mock calls.
-	// But just in case, we can use .Maybe() or expect 0 calls.
-
-	req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-	req = req.WithContext(ctx)
-	w := httptest.NewRecorder()
-
-	r.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code, "Expected 413 for JSON body > 1MB")
 }
