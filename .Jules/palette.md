@@ -51,3 +51,7 @@
 ## 2026-05-26 - Keyboard Shortcut Hints
 **Learning:** Adding visual keyboard shortcut hints (badges) significantly improves discoverability for power users, but they must be implemented with `aria-keyshortcuts` and `aria-hidden="true"` to ensure a good screen reader experience.
 **Action:** Always pair visual shortcut hints (e.g., "C" badge) with `aria-keyshortcuts` attributes on the interactive element.
+
+## 2026-05-27 - Accessible Drag & Drop File Upload
+**Learning:** Native file inputs are inaccessible to drag-and-drop workflows and screen readers often struggle with nested label structures.
+**Action:** Enhance file uploads by wrapping the input in a semantic, keyboard-accessible drag-and-drop zone with visual feedback (`isDragging`) and clear instruction text. Ensure the input has a unique `id` and is properly associated via `aria-labelledby`.
