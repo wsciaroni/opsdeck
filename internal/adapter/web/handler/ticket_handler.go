@@ -163,10 +163,14 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 	var req CreatePublicTicketRequest
 	var files []domain.File
 
-	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
-
 	contentType := r.Header.Get("Content-Type")
+	// Limit request size to prevent DoS
+	limit := int64(MaxJSONBodySize)
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		limit = MaxRequestSize
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
@@ -434,10 +438,14 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
 	var files []domain.File
 
-	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
-
 	contentType := r.Header.Get("Content-Type")
+	// Limit request size to prevent DoS
+	limit := int64(MaxJSONBodySize)
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		limit = MaxRequestSize
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
@@ -693,7 +701,7 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	var req UpdateTicketRequest
 	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		if strings.Contains(err.Error(), "request body too large") {
 			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
