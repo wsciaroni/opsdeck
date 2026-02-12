@@ -45,7 +45,7 @@ describe('CreateTicketModal', () => {
 
         // Upload file
         const file = new File(['hello'], 'hello.png', { type: 'image/png' });
-        const input = screen.getByLabelText('Upload files');
+        const input = screen.getByLabelText('Attachments');
         fireEvent.change(input, { target: { files: [file] } });
 
         expect(screen.getByText('hello.png')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('CreateTicketModal', () => {
 
         // Upload file
         const file = new File(['hello'], 'hello.png', { type: 'image/png' });
-        const input = screen.getByLabelText('Upload files');
+        const input = screen.getByLabelText('Attachments');
         fireEvent.change(input, { target: { files: [file] } });
 
         expect(screen.getByText('hello.png')).toBeInTheDocument();
