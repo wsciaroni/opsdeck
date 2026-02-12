@@ -91,7 +91,7 @@ const DashboardHeader = memo(function DashboardHeader({
                     type="text"
                     name="search"
                     id="search"
-                    className="block w-full rounded-md border-gray-300 pl-10 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
+                    className="block w-full rounded-md border-gray-300 pl-10 pr-12 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 border"
                     placeholder="Search tickets..."
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -101,8 +101,9 @@ const DashboardHeader = memo(function DashboardHeader({
                     <button
                       type="button"
                       onClick={() => setInputValue('')}
-                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      className="p-1 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:text-gray-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       aria-label="Clear search"
+                      title="Clear search"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
                     </button>
