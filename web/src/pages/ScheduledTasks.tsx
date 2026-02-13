@@ -157,10 +157,20 @@ export default function ScheduledTasks() {
                                                 </p>
                                             </div>
                                             <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                                <button onClick={() => handleEdit(task)} className="text-gray-400 hover:text-gray-600 mr-4" aria-label="Edit task">
+                                                <button
+                                                    onClick={() => handleEdit(task)}
+                                                    className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 mr-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                    aria-label="Edit task"
+                                                    title="Edit task"
+                                                >
                                                     <Edit2 className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleDelete(task.id)} className="text-red-400 hover:text-red-600" aria-label="Delete task">
+                                                <button
+                                                    onClick={() => handleDelete(task.id)}
+                                                    className="p-1 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                    aria-label="Delete task"
+                                                    title="Delete task"
+                                                >
                                                     <Trash2 className="h-5 w-5" />
                                                 </button>
                                             </div>
