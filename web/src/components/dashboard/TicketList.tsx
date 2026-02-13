@@ -5,6 +5,7 @@ import EmptyState from '../EmptyState';
 import { Inbox, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { memo, useState, useEffect } from 'react';
+import { formatDate } from '../../utils';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -70,7 +71,7 @@ const MobileTicketCard = memo(function MobileTicketCard({ ticket, density, navig
             <PriorityLabel priority={ticket.priority_id} />
           </div>
           <div className={clsx("text-gray-600", metadataFontSizeClass)}>
-            {new Date(ticket.created_at).toLocaleDateString()}
+            {formatDate(ticket.created_at)}
           </div>
         </div>
         <div className="mb-2">
@@ -115,7 +116,7 @@ const TicketRow = memo(function TicketRow({ ticket, density, navigate }: { ticke
         {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
       </td>
       <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
-        {new Date(ticket.created_at).toLocaleDateString()}
+        {formatDate(ticket.created_at)}
       </td>
     </tr>
   );
