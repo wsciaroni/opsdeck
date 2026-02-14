@@ -5,6 +5,7 @@ import EmptyState from '../EmptyState';
 import { Inbox, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { memo, useState, useEffect } from 'react';
+import { getTicketAssignee } from '../../utils';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -77,7 +78,7 @@ const MobileTicketCard = memo(function MobileTicketCard({ ticket, density, navig
           <h3 className={clsx("font-semibold text-gray-900 line-clamp-2", fontSizeClass)}>{ticket.title}</h3>
         </div>
         <div className={clsx("flex items-center text-gray-500", metadataFontSizeClass)}>
-          <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
+          <span>{getTicketAssignee(ticket)}</span>
         </div>
       </button>
     </li>
@@ -113,7 +114,7 @@ const TicketRow = memo(function TicketRow({ ticket, density, navigate }: { ticke
         <PriorityLabel priority={ticket.priority_id} />
       </td>
       <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
-        {ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}
+        {getTicketAssignee(ticket)}
       </td>
       <td className={clsx("whitespace-nowrap px-3 text-gray-500 text-left", paddingClass, fontSizeClass)}>
         {new Date(ticket.created_at).toLocaleDateString()}

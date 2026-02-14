@@ -4,6 +4,7 @@ import { type Ticket, TICKET_STATUSES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
 import { type Density } from './TicketList';
+import { getPriorityLabel, getTicketAssignee } from '../../utils';
 
 interface TicketBoardProps {
   tickets: Ticket[] | undefined;
@@ -50,13 +51,16 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
     }
   };
 
+  const assigneeName = getTicketAssignee(ticket);
+  const priorityLabel = getPriorityLabel(ticket.priority_id);
+
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={() => navigate(`/tickets/${ticket.id}`)}
       onKeyDown={(e) => handleKeyDown(e, ticket.id)}
-      aria-label={`View ticket: ${ticket.title}, Priority: ${ticket.priority_id}, Assignee: ${ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}`}
+      aria-label={`View ticket: ${ticket.title}, Priority: ${priorityLabel}, Assignee: ${assigneeName}`}
       className={clsx(
         "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
         paddingClass
@@ -72,7 +76,7 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
         {ticket.title}
       </h4>
       <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
-          <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
+          <span>{assigneeName}</span>
       </div>
     </div>
   );
