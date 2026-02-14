@@ -56,6 +56,7 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
       tabIndex={0}
       onClick={() => navigate(`/tickets/${ticket.id}`)}
       onKeyDown={(e) => handleKeyDown(e, ticket.id)}
+      aria-label={`View ticket: ${ticket.title}, Priority: ${ticket.priority_id}, Assignee: ${ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}`}
       className={clsx(
         "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
         paddingClass

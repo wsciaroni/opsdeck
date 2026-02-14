@@ -91,6 +91,7 @@ const TicketRow = memo(function TicketRow({ ticket, density, navigate }: { ticke
 
   return (
     <tr
+      role="button"
       onClick={() => navigate(`/tickets/${ticket.id}`)}
       className="cursor-pointer hover:bg-gray-50 focus:outline-none focus:bg-gray-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500"
       tabIndex={0}
