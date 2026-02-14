@@ -330,7 +330,7 @@ func TestExportTickets(t *testing.T) {
 		_ = writer.WriteField("priority_id", "medium")
 		_ = writer.Close()
 
-		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 
@@ -593,7 +593,7 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		_ = writer.Close()
 
-		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 

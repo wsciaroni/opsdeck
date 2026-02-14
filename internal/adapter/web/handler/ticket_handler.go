@@ -137,12 +137,35 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreatePublicTicketRequest
 	var files []domain.File
-
-	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+	var org *domain.Organization
+	var err error
 
 	contentType := r.Header.Get("Content-Type")
-	if strings.HasPrefix(contentType, "multipart/form-data") {
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
+	if isMultipart {
+		// Security: Validate Token in URL for Multipart requests to prevent DoS
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			http.Error(w, "Token required in URL for file uploads", http.StatusBadRequest)
+			return
+		}
+
+		// Validate Token
+		org, err = h.orgRepo.GetByShareToken(r.Context(), token)
+		if err != nil {
+			h.logger.Error("failed to get organization by token", "error", err)
+			http.Error(w, "Invalid token", http.StatusForbidden)
+			return
+		}
+		if org == nil || !org.ShareLinkEnabled {
+			http.Error(w, "Share link disabled", http.StatusForbidden)
+			return
+		}
+
+		// Limit request size to prevent DoS (32MB)
+		r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
 				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
@@ -152,6 +175,9 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		req.Token = r.FormValue("token")
+		if req.Token == "" {
+			req.Token = token
+		}
 		req.Title = r.FormValue("title")
 		req.Description = r.FormValue("description")
 		req.Name = r.FormValue("name")
@@ -184,6 +210,9 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 			}
 		}
 	} else {
+		// Limit JSON body to 1MB
+		r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
+
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
 				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
@@ -216,20 +245,22 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// 1. Validate Token & Org
-	org, err := h.orgRepo.GetByShareToken(r.Context(), req.Token)
-	if err != nil {
-		h.logger.Error("failed to get organization by token", "error", err)
-		// Assuming error means not found or db error.
-		// If org not found by token, it returns sql.ErrNoRows which might be wrapped.
-		// For security, just say forbidden or invalid.
-		http.Error(w, "Invalid token", http.StatusForbidden)
-		return
-	}
+	// 1. Validate Token & Org (if not already validated)
+	if org == nil {
+		org, err = h.orgRepo.GetByShareToken(r.Context(), req.Token)
+		if err != nil {
+			h.logger.Error("failed to get organization by token", "error", err)
+			// Assuming error means not found or db error.
+			// If org not found by token, it returns sql.ErrNoRows which might be wrapped.
+			// For security, just say forbidden or invalid.
+			http.Error(w, "Invalid token", http.StatusForbidden)
+			return
+		}
 
-	if org == nil || !org.ShareLinkEnabled {
-		http.Error(w, "Share link disabled", http.StatusForbidden)
-		return
+		if org == nil || !org.ShareLinkEnabled {
+			http.Error(w, "Share link disabled", http.StatusForbidden)
+			return
+		}
 	}
 
 	// 2. Find or Create User
@@ -408,12 +439,45 @@ func (h *TicketHandler) writeEmptyCSV(w http.ResponseWriter) {
 func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
 	var files []domain.File
+	var role string
 
-	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	contentType := r.Header.Get("Content-Type")
-	if strings.HasPrefix(contentType, "multipart/form-data") {
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
+	if isMultipart {
+		// Security: Validate Organization Access in URL for Multipart requests
+		orgIDStr := r.URL.Query().Get("organization_id")
+		if orgIDStr == "" {
+			http.Error(w, "organization_id required in URL for file uploads", http.StatusBadRequest)
+			return
+		}
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			http.Error(w, "Invalid organization_id", http.StatusBadRequest)
+			return
+		}
+
+		// Security Check: Verify user belongs to the organization
+		role, err = h.orgRepo.GetMemberRole(r.Context(), orgID, user.ID)
+		if err != nil {
+			h.logger.Error("failed to get member role", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if role == "" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Limit request size to prevent DoS (32MB)
+		r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
 				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
@@ -422,10 +486,8 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid form data", http.StatusBadRequest)
 			return
 		}
-		orgIDStr := r.FormValue("organization_id")
-		if orgIDStr != "" {
-			req.OrganizationID, _ = uuid.Parse(orgIDStr)
-		}
+
+		req.OrganizationID = orgID
 		req.Title = r.FormValue("title")
 		req.Description = r.FormValue("description")
 		req.Priority = r.FormValue("priority_id")
@@ -458,6 +520,9 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
+		// Limit JSON body to 1MB
+		r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
+
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			if strings.Contains(err.Error(), "request body too large") {
 				http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)
@@ -468,23 +533,20 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
 	// Security Check: Verify user belongs to the organization (Optimized)
-	role, err := h.orgRepo.GetMemberRole(r.Context(), req.OrganizationID, user.ID)
-	if err != nil {
-		h.logger.Error("failed to get member role", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	if role == "" {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
+		var err error
+		role, err = h.orgRepo.GetMemberRole(r.Context(), req.OrganizationID, user.ID)
+		if err != nil {
+			h.logger.Error("failed to get member role", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		if role == "" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	if len(req.Title) == 0 || len(req.Title) > 200 {

@@ -99,7 +99,7 @@ func TestCreatePublicTicket_FilenameSanitization(t *testing.T) {
 			_, _ = part.Write([]byte("content"))
 			_ = writer.Close()
 
-			req := httptest.NewRequest("POST", "/public/tickets", body)
+			req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 			req.Header.Set("Content-Type", writer.FormDataContentType())
 			w := httptest.NewRecorder()
 
@@ -141,7 +141,7 @@ func TestCreateTicket_FilenameSanitization(t *testing.T) {
 	_, _ = part.Write([]byte("content"))
 	_ = writer.Close()
 
-	req := httptest.NewRequest("POST", "/tickets", body)
+	req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 	req = req.WithContext(ctx)
