@@ -3,6 +3,7 @@ import type { PublicTicket } from '../../api/public';
 import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
 import { Inbox } from 'lucide-react';
+import { formatDate } from '../../utils';
 
 interface PublicTicketListProps {
   tickets: PublicTicket[] | undefined;
@@ -23,7 +24,7 @@ function MobileTicketCard({ ticket, onClick }: { readonly ticket: PublicTicket; 
             <PriorityLabel priority={ticket.priority_id} />
           </div>
           <div className="text-xs text-gray-500">
-            {new Date(ticket.created_at).toLocaleDateString()}
+            {formatDate(ticket.created_at)}
           </div>
         </div>
         <div className="mb-2">
@@ -116,7 +117,7 @@ export default function PublicTicketList({ tickets, isLoading, error }: PublicTi
                         <PriorityLabel priority={ticket.priority_id} />
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 text-left">
-                        {new Date(ticket.created_at).toLocaleDateString()}
+                        {formatDate(ticket.created_at)}
                       </td>
                     </tr>
                   ))}

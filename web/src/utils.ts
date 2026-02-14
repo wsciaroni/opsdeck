@@ -6,3 +6,18 @@ export function formatBytes(bytes: number, decimals = 2): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+
+// Optimize date formatting performance by reusing the formatter instance.
+// This avoids creating new Intl.DateTimeFormat objects and parsing locale data on every render,
+// significantly improving performance for long lists of dates.
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+});
+
+export function formatDate(date: string | number | Date): string {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return 'Invalid Date';
+  return dateFormatter.format(d);
+}
