@@ -157,16 +157,7 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	contentType := r.Header.Get("Content-Type")
-	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
-
-	// Limit request size to prevent DoS
-	// Use strict limit for JSON, larger limit for file uploads
-	limit := int64(MaxJSONBodySize)
-	if isMultipart {
-		limit = MaxRequestSize
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	isMultipart := h.configureBodyLimit(w, r)
 
 	if isMultipart {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
@@ -191,30 +182,11 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		req.Email = r.FormValue("email")
 		req.Priority = r.FormValue("priority_id")
 
-		if r.MultipartForm != nil && r.MultipartForm.File != nil {
-			for _, fileHeader := range r.MultipartForm.File["files"] {
-				f, err := fileHeader.Open()
-				if err != nil {
-					h.logger.Error("failed to open uploaded file", "error", err)
-					http.Error(w, "Failed to process files", http.StatusInternalServerError)
-					return
-				}
-				defer f.Close()
-
-				data, err := io.ReadAll(f)
-				if err != nil {
-					h.logger.Error("failed to read uploaded file", "error", err)
-					http.Error(w, "Failed to process files", http.StatusInternalServerError)
-					return
-				}
-
-				files = append(files, domain.File{
-					Filename:    sanitizeFilename(fileHeader.Filename),
-					ContentType: fileHeader.Header.Get("Content-Type"),
-					Size:        fileHeader.Size,
-					Data:        data,
-				})
-			}
+		var err error
+		files, err = h.processFiles(r)
+		if err != nil {
+			http.Error(w, "Failed to process files", http.StatusInternalServerError)
+			return
 		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -464,16 +436,7 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contentType := r.Header.Get("Content-Type")
-	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
-
-	// Limit request size to prevent DoS
-	// Use strict limit for JSON, larger limit for file uploads
-	limit := int64(MaxJSONBodySize)
-	if isMultipart {
-		limit = MaxRequestSize
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	isMultipart := h.configureBodyLimit(w, r)
 
 	if isMultipart {
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
@@ -505,30 +468,11 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		req.Location = r.FormValue("location")
 		req.Sensitive = r.FormValue("sensitive") == "true"
 
-		if r.MultipartForm != nil && r.MultipartForm.File != nil {
-			for _, fileHeader := range r.MultipartForm.File["files"] {
-				f, err := fileHeader.Open()
-				if err != nil {
-					h.logger.Error("failed to open uploaded file", "error", err)
-					http.Error(w, "Failed to process files", http.StatusInternalServerError)
-					return
-				}
-				defer f.Close()
-
-				data, err := io.ReadAll(f)
-				if err != nil {
-					h.logger.Error("failed to read uploaded file", "error", err)
-					http.Error(w, "Failed to process files", http.StatusInternalServerError)
-					return
-				}
-
-				files = append(files, domain.File{
-					Filename:    sanitizeFilename(fileHeader.Filename),
-					ContentType: fileHeader.Header.Get("Content-Type"),
-					Size:        fileHeader.Size,
-					Data:        data,
-				})
-			}
+		var err error
+		files, err = h.processFiles(r)
+		if err != nil {
+			http.Error(w, "Failed to process files", http.StatusInternalServerError)
+			return
 		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -858,6 +802,51 @@ func (h *TicketHandler) getTicketAndVerifyAccess(w http.ResponseWriter, r *http.
 	}
 
 	return ticket, user, true
+}
+
+// configureBodyLimit sets the MaxBytesReader based on Content-Type.
+// Returns true if the request is multipart/form-data.
+func (h *TicketHandler) configureBodyLimit(w http.ResponseWriter, r *http.Request) bool {
+	contentType := r.Header.Get("Content-Type")
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
+	// Limit request size to prevent DoS
+	// Use strict limit for JSON, larger limit for file uploads
+	limit := int64(MaxJSONBodySize)
+	if isMultipart {
+		limit = MaxRequestSize
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	return isMultipart
+}
+
+// processFiles extracts and reads files from a multipart request.
+func (h *TicketHandler) processFiles(r *http.Request) ([]domain.File, error) {
+	var files []domain.File
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		for _, fileHeader := range r.MultipartForm.File["files"] {
+			f, err := fileHeader.Open()
+			if err != nil {
+				h.logger.Error("failed to open uploaded file", "error", err)
+				return nil, err
+			}
+			defer f.Close()
+
+			data, err := io.ReadAll(f)
+			if err != nil {
+				h.logger.Error("failed to read uploaded file", "error", err)
+				return nil, err
+			}
+
+			files = append(files, domain.File{
+				Filename:    sanitizeFilename(fileHeader.Filename),
+				ContentType: fileHeader.Header.Get("Content-Type"),
+				Size:        fileHeader.Size,
+				Data:        data,
+			})
+		}
+	}
+	return files, nil
 }
 
 func sanitizeCSV(s string) string {
