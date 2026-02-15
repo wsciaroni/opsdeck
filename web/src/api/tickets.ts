@@ -35,7 +35,16 @@ export async function getTicket(id: string): Promise<TicketDetail> {
 }
 
 export async function createTicket(data: CreateTicketRequest | FormData): Promise<Ticket> {
-  const response = await client.post('/tickets', data);
+  let orgId = '';
+  if (data instanceof FormData) {
+    orgId = data.get('organization_id') as string;
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    orgId = (data as any).organization_id;
+  }
+
+  const url = orgId ? `/tickets?organization_id=${encodeURIComponent(orgId)}` : '/tickets';
+  const response = await client.post(url, data);
   return response.data;
 }
 
@@ -45,6 +54,14 @@ export async function updateTicket(id: string, data: { status_id?: string; prior
 }
 
 export async function createPublicTicket(data: { token: string; title: string; description: string; name: string; email: string; priority_id: string } | FormData): Promise<Ticket> {
-  const response = await client.post('/public/tickets', data);
+  let token = '';
+  if (data instanceof FormData) {
+    token = data.get('token') as string;
+  } else {
+    token = data.token;
+  }
+
+  const url = token ? `/public/tickets?token=${encodeURIComponent(token)}` : '/public/tickets';
+  const response = await client.post(url, data);
   return response.data;
 }

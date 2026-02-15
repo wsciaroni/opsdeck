@@ -1,7 +1,7 @@
 import { Paperclip, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatBytes } from '../utils';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import clsx from 'clsx';
 
 interface FileUploadProps {
@@ -11,11 +11,13 @@ interface FileUploadProps {
   allowedExtensions?: string[];
 }
 
-export default function FileUpload({
+const DEFAULT_ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
+
+const FileUpload = memo(function FileUpload({
   files,
   onFilesChange,
   maxSize = 32 * 1024 * 1024, // 32MB
-  allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt']
+  allowedExtensions = DEFAULT_ALLOWED_EXTENSIONS
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -150,4 +152,6 @@ export default function FileUpload({
       )}
     </div>
   );
-}
+});
+
+export default FileUpload;

@@ -4,6 +4,7 @@ import { type Ticket, TICKET_STATUSES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
 import { type Density } from './TicketList';
+import { formatDate } from '../../utils';
 
 interface TicketBoardProps {
   tickets: Ticket[] | undefined;
@@ -50,6 +51,8 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
     }
   };
 
+  const createdDate = formatDate(ticket.created_at);
+
   return (
     <div
       role="button"
@@ -63,8 +66,8 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
     >
       <div className="flex justify-between items-start mb-2">
           <PriorityLabel priority={ticket.priority_id} />
-          <span className="text-xs text-gray-600" aria-label={`Created on ${new Date(ticket.created_at).toLocaleDateString()}`}>
-            {new Date(ticket.created_at).toLocaleDateString()}
+          <span className="text-xs text-gray-600" aria-label={`Created on ${createdDate}`}>
+            {createdDate}
           </span>
       </div>
       <h4 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
@@ -89,12 +92,14 @@ const TicketBoard = memo(function TicketBoard({
 
   // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
   const ticketsByStatus = useMemo(() => {
-    return (tickets || []).reduce((acc, ticket) => {
+    const groups: Record<string, Ticket[]> = {};
+    if (!tickets) return groups;
+    for (const ticket of tickets) {
       const status = ticket.status_id;
-      if (!acc[status]) acc[status] = [];
-      acc[status].push(ticket);
-      return acc;
-    }, {} as Record<string, Ticket[]>);
+      if (!groups[status]) groups[status] = [];
+      groups[status].push(ticket);
+    }
+    return groups;
   }, [tickets]);
 
   const columns = useMemo(() => {

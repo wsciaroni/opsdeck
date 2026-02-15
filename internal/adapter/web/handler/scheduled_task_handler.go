@@ -159,6 +159,30 @@ func (h *ScheduledTaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Security Check: Get existing task and verify user permissions BEFORE reading body
+	task, err := h.service.GetTask(r.Context(), id)
+	if err != nil {
+		h.logger.Error("failed to get task", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if task == nil {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Security Check: Only Admin/Owner can update tasks
+	if err := h.checkAdminOrOwner(r.Context(), user.ID, task.OrganizationID); err != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	var req UpdateScheduledTaskRequest
 	// Limit request size to 1MB to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
@@ -177,28 +201,6 @@ func (h *ScheduledTaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != nil && len(*req.Description) > 5000 {
 		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
-		return
-	}
-
-	task, err := h.service.GetTask(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if task == nil {
-		http.Error(w, "Task not found", http.StatusNotFound)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Security Check: Only Admin/Owner can update tasks
-	if err := h.checkAdminOrOwner(r.Context(), user.ID, task.OrganizationID); err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 

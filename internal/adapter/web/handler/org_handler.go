@@ -116,6 +116,10 @@ func (h *OrgHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
+		return
+	}
+
 	// Parse Request Body
 	var req AddMemberRequest
 	// Limit request size to 1MB to prevent DoS
@@ -130,19 +134,6 @@ func (h *OrgHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Email == "" {
 		http.Error(w, "Email is required", http.StatusBadRequest)
-		return
-	}
-
-	// Check Auth
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Check Permissions (Must be owner or admin of the org)
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -360,6 +351,10 @@ func (h *OrgHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
+		return
+	}
+
 	// Parse Request Body
 	var req UpdateMemberRoleRequest
 	// Limit request size to 1MB to prevent DoS
@@ -375,19 +370,6 @@ func (h *OrgHandler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 
 	if req.Role != "admin" && req.Role != "member" && req.Role != "owner" {
 		http.Error(w, "Invalid role", http.StatusBadRequest)
-		return
-	}
-
-	// Check Auth
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Check Permissions (Must be owner or admin of the org)
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -443,6 +425,10 @@ func (h *OrgHandler) UpdateShareSettings(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
+		return
+	}
+
 	var req UpdateShareSettingsRequest
 	// Limit request size to 1MB to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
@@ -452,18 +438,6 @@ func (h *OrgHandler) UpdateShareSettings(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Only owner/admin can update settings
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -508,15 +482,7 @@ func (h *OrgHandler) RegenerateShareToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Only owner/admin can update settings
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
 		return
 	}
 
@@ -566,6 +532,23 @@ func (h *OrgHandler) isAdminOrOwner(ctx context.Context, orgID, userID uuid.UUID
 		return false
 	}
 	return role == "owner" || role == "admin"
+}
+
+func (h *OrgHandler) requireAdminOrOwner(w http.ResponseWriter, r *http.Request, orgID uuid.UUID) (*domain.User, bool) {
+	// Check Auth
+	currentUser := middleware.GetUser(r.Context())
+	if currentUser == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil, false
+	}
+
+	// Check Permissions (Must be owner or admin of the org)
+	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return nil, false
+	}
+
+	return currentUser, true
 }
 
 func generateToken() string {
@@ -628,6 +611,10 @@ func (h *OrgHandler) UpdatePublicViewSettings(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
+		return
+	}
+
 	var req UpdatePublicViewSettingsRequest
 	// Limit request size to 1MB to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
@@ -637,18 +624,6 @@ func (h *OrgHandler) UpdatePublicViewSettings(w http.ResponseWriter, r *http.Req
 			return
 		}
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Only owner/admin can update settings
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -693,15 +668,7 @@ func (h *OrgHandler) RegeneratePublicViewToken(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	currentUser := middleware.GetUser(r.Context())
-	if currentUser == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Only owner/admin can update settings
-	if !h.isAdminOrOwner(r.Context(), orgID, currentUser.ID) {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	if _, ok := h.requireAdminOrOwner(w, r, orgID); !ok {
 		return
 	}
 

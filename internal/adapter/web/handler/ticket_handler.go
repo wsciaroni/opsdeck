@@ -81,33 +81,8 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticket, err := h.service.GetTicket(r.Context(), id)
-	if err != nil {
-		h.logger.Error("failed to get ticket", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if ticket == nil {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Optimize: Use direct role lookup to verify membership without fetching all orgs
-	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
-	if err != nil {
-		h.logger.Error("failed to get member role", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if role == "" {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
+	ticket, _, ok := h.getTicketAndVerifyAccess(w, r, id)
+	if !ok {
 		return
 	}
 
@@ -163,6 +138,20 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 	var req CreatePublicTicketRequest
 	var files []domain.File
 
+	// 0. DoS Prevention: Check Token in Query Param (if present)
+	if token := r.URL.Query().Get("token"); token != "" {
+		org, err := h.orgRepo.GetByShareToken(r.Context(), token)
+		if err != nil {
+			h.logger.Error("failed to get organization by token", "error", err)
+			http.Error(w, "Invalid token", http.StatusForbidden)
+			return
+		}
+		if org == nil || !org.ShareLinkEnabled {
+			http.Error(w, "Invalid token", http.StatusForbidden)
+			return
+		}
+	}
+
 	// Limit request size to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
 
@@ -177,6 +166,13 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		req.Token = r.FormValue("token")
+		if queryToken := r.URL.Query().Get("token"); queryToken != "" {
+			bodyToken := r.PostFormValue("token")
+			if bodyToken != "" && bodyToken != queryToken {
+				http.Error(w, "Token mismatch", http.StatusBadRequest)
+				return
+			}
+		}
 		req.Title = r.FormValue("title")
 		req.Description = r.FormValue("description")
 		req.Name = r.FormValue("name")
@@ -215,6 +211,10 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 				return
 			}
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if queryToken := r.URL.Query().Get("token"); queryToken != "" && queryToken != req.Token {
+			http.Error(w, "Token mismatch", http.StatusBadRequest)
 			return
 		}
 	}
@@ -434,6 +434,32 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 	var req CreateTicketRequest
 	var files []domain.File
 
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 0. DoS Prevention: Check Organization Access via Query Param
+	if orgIDStr := r.URL.Query().Get("organization_id"); orgIDStr != "" {
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			http.Error(w, "Invalid organization_id", http.StatusBadRequest)
+			return
+		}
+
+		role, err := h.orgRepo.GetMemberRole(r.Context(), orgID, user.ID)
+		if err != nil {
+			h.logger.Error("failed to get member role", "error", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if role == "" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	// Limit request size to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
 
@@ -450,6 +476,17 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		orgIDStr := r.FormValue("organization_id")
 		if orgIDStr != "" {
 			req.OrganizationID, _ = uuid.Parse(orgIDStr)
+		}
+		if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
+			bodyOrgIDStr := r.PostFormValue("organization_id")
+			if bodyOrgIDStr != "" {
+				bUUID, err := uuid.Parse(bodyOrgIDStr)
+				qUUID, _ := uuid.Parse(queryOrgID)
+				if err == nil && bUUID != qUUID {
+					http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+					return
+				}
+			}
 		}
 		req.Title = r.FormValue("title")
 		req.Description = r.FormValue("description")
@@ -491,12 +528,13 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
+			qUUID, _ := uuid.Parse(queryOrgID)
+			if qUUID != req.OrganizationID {
+				http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+				return
+			}
+		}
 	}
 
 	// Security Check: Verify user belongs to the organization (Optimized)
@@ -691,6 +729,13 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Security Check: Get existing ticket and verify user membership BEFORE reading body
+	// This prevents DoS attacks where unauthorized users send large bodies
+	_, _, ok := h.getTicketAndVerifyAccess(w, r, id)
+	if !ok {
+		return
+	}
+
 	var req UpdateTicketRequest
 	// Limit request size to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
@@ -710,37 +755,6 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	if req.Description != nil && len(*req.Description) > 5000 {
 		http.Error(w, "Description too long", http.StatusBadRequest)
-		return
-	}
-
-	// Security Check: Get existing ticket and verify user membership
-	ticket, err := h.service.GetTicket(r.Context(), id)
-	if err != nil {
-		h.logger.Error("failed to get ticket", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if ticket == nil {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Optimize: Use direct role lookup to verify membership without fetching all orgs
-	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
-	if err != nil {
-		h.logger.Error("failed to get member role", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if role == "" {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
 		return
 	}
 
@@ -789,33 +803,8 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticket, err := h.service.GetTicket(r.Context(), file.TicketID)
-	if err != nil {
-		h.logger.Error("failed to get ticket for file access check", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	if ticket == nil {
-		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Optimize: Use direct role lookup to verify membership without fetching all orgs
-	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
-	if err != nil {
-		h.logger.Error("failed to get member role", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	if role == "" {
-		http.Error(w, "File not found", http.StatusNotFound)
+	// Verify access via parent ticket
+	if _, _, ok := h.getTicketAndVerifyAccess(w, r, file.TicketID); !ok {
 		return
 	}
 
@@ -835,6 +824,39 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(file.Data); err != nil {
 		h.logger.Error("failed to write file data", "error", err)
 	}
+}
+
+func (h *TicketHandler) getTicketAndVerifyAccess(w http.ResponseWriter, r *http.Request, ticketID uuid.UUID) (*domain.Ticket, *domain.User, bool) {
+	ticket, err := h.service.GetTicket(r.Context(), ticketID)
+	if err != nil {
+		h.logger.Error("failed to get ticket", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return nil, nil, false
+	}
+	if ticket == nil {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return nil, nil, false
+	}
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return nil, nil, false
+	}
+
+	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
+	if err != nil {
+		h.logger.Error("failed to get member role", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return nil, nil, false
+	}
+
+	if role == "" {
+		http.Error(w, "Ticket not found", http.StatusNotFound)
+		return nil, nil, false
+	}
+
+	return ticket, user, true
 }
 
 func sanitizeCSV(s string) string {
