@@ -330,7 +330,7 @@ func TestExportTickets(t *testing.T) {
 		_ = writer.WriteField("priority_id", "medium")
 		_ = writer.Close()
 
-		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 
@@ -383,7 +383,7 @@ func TestCreatePublicTicket(t *testing.T) {
 			return cmd.OrganizationID == orgID && cmd.ReporterID == userID && cmd.Title == "New Public Ticket"
 		})).Return(ticket, nil)
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -437,7 +437,7 @@ func TestCreatePublicTicket(t *testing.T) {
 			assert.Equal(t, newUserID, cmd.ReporterID)
 		})
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -469,7 +469,7 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -478,9 +478,17 @@ func TestCreatePublicTicket(t *testing.T) {
 	})
 
 	t.Run("BadRequest - Invalid Input", func(t *testing.T) {
-		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		mockOrgRepo := new(MockOrgRepo)
+		h := handler.NewTicketHandler(nil, mockOrgRepo, nil, nil)
 		r := chi.NewRouter()
 		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "token"
+		org := &domain.Organization{
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
 
 		reqBody := map[string]string{
 			"token":       "token",
@@ -492,7 +500,7 @@ func TestCreatePublicTicket(t *testing.T) {
 		}
 		bodyBytes, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token=token", bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -502,9 +510,17 @@ func TestCreatePublicTicket(t *testing.T) {
 	})
 
 	t.Run("BadRequest - Invalid Email", func(t *testing.T) {
-		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		mockOrgRepo := new(MockOrgRepo)
+		h := handler.NewTicketHandler(nil, mockOrgRepo, nil, nil)
 		r := chi.NewRouter()
 		r.Post("/public/tickets", h.CreatePublicTicket)
+
+		token := "token"
+		org := &domain.Organization{
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
 
 		reqBody := map[string]string{
 			"token":       "token",
@@ -516,7 +532,7 @@ func TestCreatePublicTicket(t *testing.T) {
 		}
 		bodyBytes, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token=token", bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -526,14 +542,25 @@ func TestCreatePublicTicket(t *testing.T) {
 	})
 
 	t.Run("RequestEntityTooLarge - Body too large", func(t *testing.T) {
-		h := handler.NewTicketHandler(nil, nil, nil, nil)
+		mockOrgRepo := new(MockOrgRepo)
+		h := handler.NewTicketHandler(nil, mockOrgRepo, nil, nil)
 		r := chi.NewRouter()
 		r.Post("/public/tickets", h.CreatePublicTicket)
 
+		token := "token"
+		org := &domain.Organization{
+			ShareLinkEnabled: true,
+			ShareLinkToken:   &token,
+		}
+		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+
 		// Create a reader larger than MaxRequestSize (32MB)
+		// NOTE: Since we updated logic, non-multipart JSON requests are limited to 1MB.
+		// If we send 32MB, it will definitely fail.
+		// However, for this test to match its name, we want 413.
 		largeReader := &LargeReader{Size: handler.MaxRequestSize + 1024}
 
-		req := httptest.NewRequest("POST", "/public/tickets", largeReader)
+		req := httptest.NewRequest("POST", "/public/tickets?token=token", largeReader)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -593,7 +620,7 @@ func TestCreatePublicTicket(t *testing.T) {
 
 		_ = writer.Close()
 
-		req := httptest.NewRequest("POST", "/public/tickets", body)
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 		w := httptest.NewRecorder()
 
@@ -637,7 +664,7 @@ func TestCreatePublicTicket(t *testing.T) {
 		mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
 		mockUserRepo.On("GetByEmail", mock.Anything, "staff@example.com").Return(staffUser, nil)
 
-		req := httptest.NewRequest("POST", "/public/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/public/tickets?token="+token, bytes.NewReader(bodyBytes))
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -663,7 +690,7 @@ func TestCreateTicket(t *testing.T) {
 		}
 		bodyBytes, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("POST", "/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), bytes.NewReader(bodyBytes))
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
@@ -700,7 +727,7 @@ func TestCreateTicket(t *testing.T) {
 		}
 		bodyBytes, _ := json.Marshal(reqBody)
 
-		req := httptest.NewRequest("POST", "/tickets", bytes.NewReader(bodyBytes))
+		req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), bytes.NewReader(bodyBytes))
 		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 		req = req.WithContext(ctx)
 		w := httptest.NewRecorder()
