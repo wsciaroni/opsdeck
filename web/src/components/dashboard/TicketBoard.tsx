@@ -1,6 +1,6 @@
 import { useMemo, memo } from 'react';
-import { useNavigate, type NavigateFunction } from 'react-router-dom';
-import { type Ticket, TICKET_STATUSES } from '../../types';
+import { Link } from 'react-router-dom';
+import { type Ticket, TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
 import { type Density } from './TicketList';
@@ -18,7 +18,6 @@ interface TicketBoardProps {
 interface TicketCardProps {
   ticket: Ticket;
   density: Density;
-  navigate: NavigateFunction;
 }
 
 // Optimization: Hoist style constants to prevent object allocation on every render
@@ -40,27 +39,22 @@ const COLUMN_WIDTH_CLASSES: Record<Density, string> = {
   comfortable: 'min-w-[18rem]',
 };
 
-const TicketCard = memo(function TicketCard({ ticket, density, navigate }: TicketCardProps) {
+const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps) {
   // Optimization: use pre-defined constants
   const paddingClass = PADDING_CLASSES[density];
   const fontSizeClass = FONT_SIZE_CLASSES[density];
 
-  const handleKeyDown = (e: React.KeyboardEvent, ticketId: string) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      navigate(`/tickets/${ticketId}`);
-    }
-  };
-
   const createdDate = formatDate(ticket.created_at);
+  const priorityLabel = TICKET_PRIORITIES.find(p => p.id === ticket.priority_id)?.label || ticket.priority_id;
+  const statusLabel = TICKET_STATUSES.find(s => s.id === ticket.status_id)?.label || ticket.status_id;
+  const assignee = ticket.assignee_name || ticket.assignee_user_id || 'Unassigned';
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => navigate(`/tickets/${ticket.id}`)}
-      onKeyDown={(e) => handleKeyDown(e, ticket.id)}
+    <Link
+      to={`/tickets/${ticket.id}`}
+      aria-label={`View ticket: ${ticket.title}, Priority: ${priorityLabel}, Status: ${statusLabel}, Assignee: ${assignee}`}
       className={clsx(
-        "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
+        "block bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
         paddingClass
       )}
     >
@@ -76,7 +70,7 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
       <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
           <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
       </div>
-    </div>
+    </Link>
   );
 });
 
@@ -87,9 +81,6 @@ const TicketBoard = memo(function TicketBoard({
   density,
   visibleStatuses,
 }: TicketBoardProps) {
-  // Optimization: Hoist useNavigate to avoid calling it in every card
-  const navigate = useNavigate();
-
   // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
   const ticketsByStatus = useMemo(() => {
     const groups: Record<string, Ticket[]> = {};
@@ -137,7 +128,6 @@ const TicketBoard = memo(function TicketBoard({
                 key={ticket.id}
                 ticket={ticket}
                 density={density}
-                navigate={navigate}
               />
             ))}
             {!ticketsByStatus[column.id]?.length && (

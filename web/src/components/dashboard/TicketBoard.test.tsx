@@ -118,4 +118,27 @@ describe('TicketBoard', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
   });
+
+  it('has accessible ticket cards', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    // Get the card by the aria-label part we constructed
+    const card = screen.getByRole('link', { name: /View ticket: Test Ticket 1/i });
+    expect(card).toBeInTheDocument();
+
+    // Verify aria-label contains detailed info
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('Priority: High'));
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('Status: New'));
+    expect(card).toHaveAttribute('aria-label', expect.stringContaining('Assignee: Assignee One'));
+  });
 });
