@@ -178,6 +178,15 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 		if req.Token == "" {
 			req.Token = token
 		}
+		// Verify mismatch for multipart
+		if token != "" {
+			bodyToken := r.PostFormValue("token")
+			if bodyToken != "" && token != bodyToken {
+				http.Error(w, "Token mismatch", http.StatusBadRequest)
+				return
+			}
+		}
+
 		req.Title = r.FormValue("title")
 		req.Description = r.FormValue("description")
 		req.Name = r.FormValue("name")
@@ -219,6 +228,11 @@ func (h *TicketHandler) CreatePublicTicket(w http.ResponseWriter, r *http.Reques
 				return
 			}
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		// Check token mismatch for JSON
+		if queryToken := r.URL.Query().Get("token"); queryToken != "" && queryToken != req.Token {
+			http.Error(w, "Token mismatch", http.StatusBadRequest)
 			return
 		}
 	}
@@ -494,6 +508,15 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		req.Location = r.FormValue("location")
 		req.Sensitive = r.FormValue("sensitive") == "true"
 
+		// Verify mismatch for multipart
+		if bodyOrgID := r.PostFormValue("organization_id"); bodyOrgID != "" {
+			parsedBodyID, err := uuid.Parse(bodyOrgID)
+			if err == nil && parsedBodyID != orgID {
+				http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+				return
+			}
+		}
+
 		if r.MultipartForm != nil && r.MultipartForm.File != nil {
 			for _, fileHeader := range r.MultipartForm.File["files"] {
 				f, err := fileHeader.Open()
@@ -530,6 +553,13 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
+		}
+
+		if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
+			if parsedQueryID, err := uuid.Parse(queryOrgID); err == nil && parsedQueryID != req.OrganizationID {
+				http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+				return
+			}
 		}
 	}
 

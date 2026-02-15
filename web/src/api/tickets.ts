@@ -35,18 +35,15 @@ export async function getTicket(id: string): Promise<TicketDetail> {
 }
 
 export async function createTicket(data: CreateTicketRequest | FormData): Promise<Ticket> {
-  let orgID = '';
+  let orgId = '';
   if (data instanceof FormData) {
-    orgID = data.get('organization_id') as string;
+    orgId = data.get('organization_id') as string;
   } else {
-    orgID = data.organization_id;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    orgId = (data as any).organization_id;
   }
 
-  let url = '/tickets';
-  if (orgID) {
-    url += `?organization_id=${encodeURIComponent(orgID)}`;
-  }
-
+  const url = orgId ? `/tickets?organization_id=${encodeURIComponent(orgId)}` : '/tickets';
   const response = await client.post(url, data);
   return response.data;
 }
@@ -64,11 +61,7 @@ export async function createPublicTicket(data: { token: string; title: string; d
     token = data.token;
   }
 
-  let url = '/public/tickets';
-  if (token) {
-    url += `?token=${encodeURIComponent(token)}`;
-  }
-
+  const url = token ? `/public/tickets?token=${encodeURIComponent(token)}` : '/public/tickets';
   const response = await client.post(url, data);
   return response.data;
 }
