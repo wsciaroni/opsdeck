@@ -16,7 +16,13 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
 });
 
+/**
+ * Optimized date formatting using cached Intl.DateTimeFormat instance.
+ * Much faster than new Date().toLocaleDateString() in loops.
+ * Handles string, number, or Date objects. Returns 'Invalid Date' if parsing fails.
+ */
 export function formatDate(date: string | number | Date): string {
+  if (!date) return '';
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d.getTime())) return 'Invalid Date';
   return dateFormatter.format(d);
