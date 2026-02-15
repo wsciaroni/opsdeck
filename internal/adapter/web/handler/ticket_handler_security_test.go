@@ -99,7 +99,7 @@ func TestCreatePublicTicket_FilenameSanitization(t *testing.T) {
 			_, _ = part.Write([]byte("content"))
 			_ = writer.Close()
 
-			req := httptest.NewRequest("POST", "/public/tickets", body)
+			req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
 			req.Header.Set("Content-Type", writer.FormDataContentType())
 			w := httptest.NewRecorder()
 
@@ -141,7 +141,7 @@ func TestCreateTicket_FilenameSanitization(t *testing.T) {
 	_, _ = part.Write([]byte("content"))
 	_ = writer.Close()
 
-	req := httptest.NewRequest("POST", "/tickets", body)
+	req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
 	req = req.WithContext(ctx)
@@ -150,4 +150,129 @@ func TestCreateTicket_FilenameSanitization(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestCreatePublicTicket_DoS_Prevention(t *testing.T) {
+	// Test that invalid token in query param returns 403 FAST (no body read implied)
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Post("/public/tickets", h.CreatePublicTicket)
+
+	// Mock OrgRepo to return error or nil for invalid token
+	mockOrgRepo.On("GetByShareToken", mock.Anything, "invalid-token").Return(nil, nil)
+
+	// Create a large body to simulate DoS attempt (though we won't actually send 32MB in test for speed)
+	// But the handler should reject before reading it.
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("token", "invalid-token")
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", "/public/tickets?token=invalid-token", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestCreateTicket_DoS_Prevention(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+	r := chi.NewRouter()
+	r.Post("/tickets", h.CreateTicket)
+
+	user := &domain.User{ID: uuid.New()}
+	orgID := uuid.New()
+
+	// User not member of org
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("", nil)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("organization_id", orgID.String())
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestCreateTicket_Mismatch_Prevention(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+	r := chi.NewRouter()
+	r.Post("/tickets", h.CreateTicket)
+
+	user := &domain.User{ID: uuid.New()}
+	orgID := uuid.New()
+	otherOrgID := uuid.New()
+
+	// User is member of orgID (in query param)
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("organization_id", otherOrgID.String()) // Mismatch!
+	_ = writer.WriteField("title", "Title")
+	_ = writer.WriteField("description", "Desc")
+	_ = writer.WriteField("priority_id", "medium")
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code) // Should fail due to mismatch
+}
+
+func TestCreatePublicTicket_Mismatch_Prevention(t *testing.T) {
+	mockService := new(MockTicketService)
+	mockOrgRepo := new(MockOrgRepo)
+	mockUserRepo := new(MockUserRepo)
+	h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+	r := chi.NewRouter()
+	r.Post("/public/tickets", h.CreatePublicTicket)
+
+	token := "valid-token"
+	otherToken := "other-token"
+	org := &domain.Organization{
+		ID:               uuid.New(),
+		ShareLinkEnabled: true,
+		ShareLinkToken:   &token,
+	}
+
+	mockOrgRepo.On("GetByShareToken", mock.Anything, token).Return(org, nil)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	_ = writer.WriteField("token", otherToken) // Mismatch
+	_ = writer.WriteField("title", "Title")
+	_ = writer.Close()
+
+	req := httptest.NewRequest("POST", "/public/tickets?token="+token, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
