@@ -280,91 +280,90 @@ func TestCreatePublicTicket_Mismatch_Prevention(t *testing.T) {
 }
 
 func TestTicketHandler_InputLength(t *testing.T) {
-	mockService := new(MockTicketService)
-	mockOrgRepo := new(MockOrgRepo)
-	h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
-	r := chi.NewRouter()
-	r.Post("/tickets", h.CreateTicket)
-	r.Patch("/tickets/{ticketID}", h.UpdateTicket)
-
 	user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
 	orgID := uuid.New()
 	ticketID := uuid.New()
 	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
 
-	t.Run("CreateTicket - Location Too Long", func(t *testing.T) {
-		// Called twice: once for query param check, once for body check
-		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+	tests := []struct {
+		name        string
+		method      string
+		url         string
+		reqBody     map[string]interface{}
+		expectError string
+		setupMocks  func(*MockTicketService, *MockOrgRepo)
+	}{
+		{
+			name:   "CreateTicket - Location Too Long",
+			method: "POST",
+			url:    "/tickets?organization_id=" + orgID.String(),
+			reqBody: map[string]interface{}{
+				"organization_id": orgID,
+				"title":           "Valid Title",
+				"description":     "Valid Description",
+				"location":        strings.Repeat("A", 201), // Limit 200
+				"priority_id":     "medium",
+			},
+			expectError: "Location",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("CreateTicket", mock.Anything, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+		{
+			name:   "UpdateTicket - Location Too Long",
+			method: "PATCH",
+			url:    "/tickets/" + ticketID.String(),
+			reqBody: map[string]interface{}{
+				"location": strings.Repeat("A", 201),
+			},
+			expectError: "Location",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+		{
+			name:   "UpdateTicket - AssigneeCustomName Too Long",
+			method: "PATCH",
+			url:    "/tickets/" + ticketID.String(),
+			reqBody: map[string]interface{}{
+				"assignee_custom_name": strings.Repeat("A", 101), // Limit 100
+			},
+			expectError: "Assignee Name",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+	}
 
-		// Mock success because currently it SUCCEEDS (we expect failure in assertion, but code proceeds)
-		mockService.On("CreateTicket", mock.Anything, mock.Anything).Return(ticket, nil).Maybe()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService := new(MockTicketService)
+			mockOrgRepo := new(MockOrgRepo)
+			h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+			r := chi.NewRouter()
+			r.Post("/tickets", h.CreateTicket)
+			r.Patch("/tickets/{ticketID}", h.UpdateTicket)
 
-		reqBody := map[string]interface{}{
-			"organization_id": orgID,
-			"title":           "Valid Title",
-			"description":     "Valid Description",
-			"location":        strings.Repeat("A", 201), // Limit 200
-			"priority_id":     "medium",
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
+			if tc.setupMocks != nil {
+				tc.setupMocks(mockService, mockOrgRepo)
+			}
 
-		req := httptest.NewRequest("POST", "/tickets?organization_id="+orgID.String(), bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
+			bodyBytes, _ := json.Marshal(tc.reqBody)
+			req := httptest.NewRequest(tc.method, tc.url, bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
+			w := httptest.NewRecorder()
 
-		r.ServeHTTP(w, req)
+			r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Location")
-	})
-
-	t.Run("UpdateTicket - Location Too Long", func(t *testing.T) {
-		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
-		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
-
-		// Mock success because currently it SUCCEEDS
-		mockService.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
-
-		reqBody := map[string]interface{}{
-			"location": strings.Repeat("A", 201),
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Location")
-	})
-
-	t.Run("UpdateTicket - AssigneeCustomName Too Long", func(t *testing.T) {
-		mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
-		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
-
-		// Mock success because currently it SUCCEEDS
-		mockService.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
-
-		reqBody := map[string]interface{}{
-			"assignee_custom_name": strings.Repeat("A", 101), // Limit 100
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-		w := httptest.NewRecorder()
-
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Assignee Name")
-	})
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.Contains(t, w.Body.String(), tc.expectError)
+		})
+	}
 }
