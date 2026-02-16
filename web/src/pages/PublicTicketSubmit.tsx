@@ -131,13 +131,14 @@ export default function PublicTicketSubmit() {
 
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name
+                Name <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="mt-1">
                 <input
                   id="name"
                   name="name"
                   type="text"
+                  aria-required="true"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -148,7 +149,7 @@ export default function PublicTicketSubmit() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                Email address <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="mt-1">
                 <input
@@ -156,6 +157,7 @@ export default function PublicTicketSubmit() {
                   name="email"
                   type="email"
                   autoComplete="email"
+                  aria-required="true"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -166,13 +168,14 @@ export default function PublicTicketSubmit() {
 
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                Title
+                Title <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="mt-1">
                 <input
                   id="title"
                   name="title"
                   type="text"
+                  aria-required="true"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -183,13 +186,14 @@ export default function PublicTicketSubmit() {
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                Description
+                Description <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <div className="mt-1">
                 <textarea
                   id="description"
                   name="description"
                   rows={4}
+                  aria-required="true"
                   required
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
