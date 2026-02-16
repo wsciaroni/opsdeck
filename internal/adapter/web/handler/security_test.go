@@ -197,6 +197,29 @@ func TestScheduledTaskHandler_Security(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "Description too long")
 	})
 
+	t.Run("Input Validation - Location Too Long", func(t *testing.T) {
+		longLocation := RepeatString("A", 201)
+		reqBody := map[string]interface{}{
+			"organization_id": orgID,
+			"title":           "Valid Title",
+			"description":     "Valid Description",
+			"location":        longLocation,
+		}
+		bodyBytes, _ := json.Marshal(reqBody)
+
+		req := httptest.NewRequest("POST", "/scheduled-tasks", bytes.NewReader(bodyBytes))
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Location")
+	})
+
 	t.Run("DoS Prevention - Update Task Body Too Large", func(t *testing.T) {
 		// Expect GetTask and Auth check because we moved them before body read
 		taskID := uuid.New()
