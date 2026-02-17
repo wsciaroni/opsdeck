@@ -9,3 +9,7 @@
 ## 2024-05-25 - Expensive Date Formatting in Render Loop
 **Learning:** Repeatedly calling `new Date().toLocaleDateString()` inside a large list render loop is expensive because it parses the date string and creates a new formatter instance every time.
 **Action:** Use a cached `Intl.DateTimeFormat` instance outside the component or in a utility function to format dates efficiently.
+
+## 2024-05-26 - Early Authorization for Large Requests
+**Learning:** For handlers accepting large payloads (e.g., file uploads, large JSON), checking authorization via a URL query parameter (like `organization_id`) *before* reading the body prevents DoS attacks and saves resources on unauthorized requests.
+**Action:** When designing create/update endpoints, include the authorization context (e.g., `organization_id`) in the query string and validate it before parsing the request body.

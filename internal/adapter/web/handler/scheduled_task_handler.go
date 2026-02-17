@@ -91,6 +91,28 @@ func (h *ScheduledTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// DoS Prevention: Check Organization Access via Query Param
+	// This optimization allows rejecting unauthorized requests before reading the body
+	queryOrgIDStr := r.URL.Query().Get("organization_id")
+	if queryOrgIDStr != "" {
+		orgID, err := uuid.Parse(queryOrgIDStr)
+		if err != nil {
+			http.Error(w, "Invalid organization_id", http.StatusBadRequest)
+			return
+		}
+
+		if err := h.checkAdminOrOwner(r.Context(), user.ID, orgID); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	var req CreateScheduledTaskRequest
 	// Limit request size to 1MB to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
@@ -103,24 +125,26 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if queryOrgIDStr != "" {
+		orgID, _ := uuid.Parse(queryOrgIDStr)
+		if orgID != req.OrganizationID {
+			http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Fallback: Check permission if not checked early
+		if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	if len(req.Title) == 0 || len(req.Title) > 200 {
 		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
 		return
 	}
 	if len(req.Description) > 5000 {
 		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	// Security Check: Only Admin/Owner can create tasks
-	if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 

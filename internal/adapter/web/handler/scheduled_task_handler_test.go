@@ -145,3 +145,78 @@ func TestDeleteTask_Success_Admin(t *testing.T) {
 	// Expect No Content
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
+
+func TestCreateTask_OrganizationMismatch(t *testing.T) {
+	mockService := new(MockScheduledTaskService)
+	mockOrgRepo := new(MockOrgRepo)
+	h := handler.NewScheduledTaskHandler(mockService, mockOrgRepo, nil)
+
+	r := chi.NewRouter()
+	r.Post("/scheduled-tasks", h.Create)
+
+	user := &domain.User{ID: uuid.New(), Role: domain.RoleAdmin}
+	orgIDQuery := uuid.New()
+	orgIDBody := uuid.New()
+
+	// Mock GetMemberRole for query org ID (should be checked first)
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgIDQuery, user.ID).Return("admin", nil)
+
+	reqBody := map[string]interface{}{
+		"title":           "New Task",
+		"description":     "Do something",
+		"organization_id": orgIDBody,
+		"frequency":       "daily",
+		"start_date":      time.Now(),
+		"priority_id":     "medium",
+		"enabled":         true,
+	}
+	bodyBytes, _ := json.Marshal(reqBody)
+
+	// Send request with mismatched organization_id in query param
+	req := httptest.NewRequest("POST", "/scheduled-tasks?organization_id="+orgIDQuery.String(), bytes.NewReader(bodyBytes))
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Expect Bad Request due to mismatch
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestCreateTask_EarlyAuth_Forbidden(t *testing.T) {
+	mockService := new(MockScheduledTaskService)
+	mockOrgRepo := new(MockOrgRepo)
+	h := handler.NewScheduledTaskHandler(mockService, mockOrgRepo, nil)
+
+	r := chi.NewRouter()
+	r.Post("/scheduled-tasks", h.Create)
+
+	user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
+	orgID := uuid.New()
+
+	// Mock GetMemberRole returning "member" (not owner/admin)
+	mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
+
+	reqBody := map[string]interface{}{
+		"title":           "New Task",
+		"description":     "Do something",
+		"organization_id": orgID,
+		"frequency":       "daily",
+		"start_date":      time.Now(),
+		"priority_id":     "medium",
+		"enabled":         true,
+	}
+	bodyBytes, _ := json.Marshal(reqBody)
+
+	// Send request with organization_id in query param
+	req := httptest.NewRequest("POST", "/scheduled-tasks?organization_id="+orgID.String(), bytes.NewReader(bodyBytes))
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Expect Forbidden
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}

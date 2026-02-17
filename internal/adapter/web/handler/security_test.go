@@ -155,6 +155,9 @@ func TestScheduledTaskHandler_Security(t *testing.T) {
 	})
 
 	t.Run("Input Validation - Title Too Long", func(t *testing.T) {
+		// Mock Auth Check
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("owner", nil).Once()
+
 		longTitle := RepeatString("A", 201)
 		reqBody := map[string]interface{}{
 			"organization_id": orgID,
@@ -176,6 +179,9 @@ func TestScheduledTaskHandler_Security(t *testing.T) {
 	})
 
 	t.Run("Input Validation - Description Too Long", func(t *testing.T) {
+		// Mock Auth Check
+		mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("owner", nil).Once()
+
 		longDesc := RepeatString("A", 5001)
 		reqBody := map[string]interface{}{
 			"organization_id": orgID,

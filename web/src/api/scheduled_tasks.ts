@@ -9,7 +9,11 @@ export const listScheduledTasks = async (organizationId: string) => {
 };
 
 export const createScheduledTask = async (data: Partial<ScheduledTask>) => {
-  const response = await api.post<ScheduledTask>('/scheduled-tasks', data);
+  // Optimization: send organization_id in query params to enable early authorization on backend
+  const queryParams = data.organization_id ? { organization_id: data.organization_id } : undefined;
+  const response = await api.post<ScheduledTask>('/scheduled-tasks', data, {
+    params: queryParams,
+  });
   return response.data;
 };
 
