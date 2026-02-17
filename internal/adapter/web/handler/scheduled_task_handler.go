@@ -92,6 +92,29 @@ func (h *ScheduledTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateScheduledTaskRequest
+
+	user := middleware.GetUser(r.Context())
+	if user == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 0. DoS Prevention: Check Organization Access via Query Param
+	// This allows rejecting unauthorized requests BEFORE reading/parsing the body
+	if orgIDStr := r.URL.Query().Get("organization_id"); orgIDStr != "" {
+		orgID, err := uuid.Parse(orgIDStr)
+		if err != nil {
+			http.Error(w, "Invalid organization_id", http.StatusBadRequest)
+			return
+		}
+
+		// Security Check: Only Admin/Owner can create tasks
+		if err := h.checkAdminOrOwner(r.Context(), user.ID, orgID); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+	}
+
 	// Limit request size to 1MB to prevent DoS
 	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -103,18 +126,20 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
+		qUUID, _ := uuid.Parse(queryOrgID)
+		if req.OrganizationID != qUUID {
+			http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
+			return
+		}
+	}
+
 	if len(req.Title) == 0 || len(req.Title) > 200 {
 		http.Error(w, "Title must be between 1 and 200 characters", http.StatusBadRequest)
 		return
 	}
 	if len(req.Description) > 5000 {
 		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

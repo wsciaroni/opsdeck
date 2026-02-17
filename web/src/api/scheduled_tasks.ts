@@ -9,7 +9,8 @@ export const listScheduledTasks = async (organizationId: string) => {
 };
 
 export const createScheduledTask = async (data: Partial<ScheduledTask>) => {
-  const response = await api.post<ScheduledTask>('/scheduled-tasks', data);
+  const params = data.organization_id ? { organization_id: data.organization_id } : {};
+  const response = await api.post<ScheduledTask>('/scheduled-tasks', data, { params });
   return response.data;
 };
 

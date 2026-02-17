@@ -70,12 +70,12 @@ func NewRouter(
 			r.With(ticketRL.Limit).Patch("/tickets/{ticketID}", ticketHandler.UpdateTicket)
 
 			// Comments
-			r.Post("/tickets/{ticketID}/comments", commentHandler.Create)
+			r.With(ticketRL.Limit).Post("/tickets/{ticketID}/comments", commentHandler.Create)
 			r.Get("/tickets/{ticketID}/comments", commentHandler.List)
 
 			// Scheduled Tasks
 			r.Get("/scheduled-tasks", scheduledTaskHandler.List)
-			r.Post("/scheduled-tasks", scheduledTaskHandler.Create)
+			r.With(ticketRL.Limit).Post("/scheduled-tasks", scheduledTaskHandler.Create)
 			r.Patch("/scheduled-tasks/{id}", scheduledTaskHandler.Update)
 			r.Delete("/scheduled-tasks/{id}", scheduledTaskHandler.Delete)
 
