@@ -4,7 +4,7 @@ import { createScheduledTask, updateScheduledTask } from '../../api/scheduled_ta
 import toast from 'react-hot-toast';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { Loader2 } from 'lucide-react';
-import { FREQUENCIES, type ScheduledTask } from '../../types';
+import { FREQUENCIES, TICKET_PRIORITIES, type ScheduledTask } from '../../types';
 
 interface CreateScheduledTaskModalProps {
   isOpen: boolean;
@@ -113,12 +113,15 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
                         </DialogTitle>
                         <div className="mt-4 space-y-4">
                           <div>
-                            <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                              Title <span className="text-red-500" aria-hidden="true">*</span>
+                            </label>
                             <input
                               type="text"
                               name="title"
                               id="title"
                               required
+                              aria-required="true"
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                               value={formData.title}
                               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -151,12 +154,15 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Next Run Date</label>
+                                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
+                                  Next Run Date <span className="text-red-500" aria-hidden="true">*</span>
+                                </label>
                                 <input
                                 type="date"
                                 name="start_date"
                                 id="start_date"
                                 required
+                                aria-required="true"
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                                 value={formData.start_date}
                                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
@@ -172,10 +178,11 @@ export default function CreateScheduledTaskModal({ isOpen, onClose, organization
                               value={formData.priority_id}
                               onChange={(e) => setFormData({ ...formData, priority_id: e.target.value })}
                             >
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                              <option value="critical">Critical</option>
+                              {TICKET_PRIORITIES.slice().reverse().map((priority) => (
+                                <option key={priority.id} value={priority.id}>
+                                  {priority.label}
+                                </option>
+                              ))}
                             </select>
                           </div>
                           <div>
