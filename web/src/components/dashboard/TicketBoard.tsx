@@ -80,6 +80,64 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
   );
 });
 
+interface TicketColumnProps {
+  column: typeof TICKET_STATUSES[number];
+  tickets: Ticket[] | undefined;
+  density: Density;
+  navigate: NavigateFunction;
+}
+
+// Optimized: Memoize column to prevent re-rendering unchanged columns when other tickets change.
+const TicketColumn = memo(function TicketColumn({ column, tickets, density, navigate }: TicketColumnProps) {
+  const columnWidthClass = COLUMN_WIDTH_CLASSES[density];
+
+  return (
+    <div
+      className={clsx(
+        'flex-1 bg-gray-100 rounded-lg flex flex-col max-h-[calc(100vh-12rem)]',
+        columnWidthClass
+      )}
+    >
+      <div className="p-3 font-semibold text-gray-700 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
+        <span>{column.label}</span>
+        <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+          {tickets?.length || 0}
+        </span>
+      </div>
+      <div className="p-2 overflow-y-auto flex-1 space-y-2">
+        {tickets?.map((ticket) => (
+          <TicketCard
+            key={ticket.id}
+            ticket={ticket}
+            density={density}
+            navigate={navigate}
+          />
+        ))}
+        {!tickets?.length && (
+          <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>
+        )}
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent re-renders when tickets array reference changes but content is same
+  if (prevProps.density !== nextProps.density) return false;
+  if (prevProps.column.id !== nextProps.column.id) return false;
+
+  const prevTickets = prevProps.tickets || [];
+  const nextTickets = nextProps.tickets || [];
+
+  if (prevTickets.length !== nextTickets.length) return false;
+
+  // Since React Query uses structural sharing, unchanged ticket objects are referentially stable.
+  // We can just check reference equality for each item.
+  for (let i = 0; i < prevTickets.length; i++) {
+    if (prevTickets[i] !== nextTickets[i]) return false;
+  }
+
+  return true;
+});
+
 const TicketBoard = memo(function TicketBoard({
   tickets,
   isLoading,
@@ -110,41 +168,19 @@ const TicketBoard = memo(function TicketBoard({
     return TICKET_STATUSES.filter((status) => !status.isFinished);
   }, [visibleStatuses]);
 
-  const columnWidthClass = COLUMN_WIDTH_CLASSES[density];
-
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading tickets...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error loading tickets</div>;
 
   return (
     <div className="flex h-full overflow-x-auto space-x-4 pb-4">
       {columns.map((column) => (
-        <div
+        <TicketColumn
           key={column.id}
-          className={clsx(
-            'flex-1 bg-gray-100 rounded-lg flex flex-col max-h-[calc(100vh-12rem)]',
-            columnWidthClass
-          )}
-        >
-          <div className="p-3 font-semibold text-gray-700 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
-            <span>{column.label}</span>
-            <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-              {ticketsByStatus[column.id]?.length || 0}
-            </span>
-          </div>
-          <div className="p-2 overflow-y-auto flex-1 space-y-2">
-            {ticketsByStatus[column.id]?.map((ticket) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={ticket}
-                density={density}
-                navigate={navigate}
-              />
-            ))}
-            {!ticketsByStatus[column.id]?.length && (
-              <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>
-            )}
-          </div>
-        </div>
+          column={column}
+          tickets={ticketsByStatus[column.id]}
+          density={density}
+          navigate={navigate}
+        />
       ))}
     </div>
   );
