@@ -36,3 +36,8 @@
 **Vulnerability:** The session signing mechanism (`SignSessionID`) verified the authenticity of the session ID but not its age. A stolen cookie could be used indefinitely to impersonate the user, even if the client-side cookie expired.
 **Learning:** Cryptographic signatures only prove *who* signed the data, not *when* or if it's still valid. Stateful expiration (in DB) or stateless expiration (in token payload) is mandatory.
 **Prevention:** Included an expiration timestamp in the signed payload (`id.expires_at.signature`) and enforced it in the `AuthMiddleware`. This ensures tokens automatically become invalid after the set duration (e.g., 24 hours).
+
+## 2026-02-07 - Application-Layer DoS via Unauthorized Large Request Body
+**Vulnerability:** The `Create` endpoint for Scheduled Tasks decoded the JSON request body (up to 1MB) *before* verifying if the user had permission to create a task for the specified organization. This allowed authenticated but unauthorized users to consume server resources by sending large payloads.
+**Learning:** Checking authorization *after* parsing the request body is inefficient and risky. While `http.MaxBytesReader` limits the total size, parsing JSON still consumes CPU and memory.
+**Prevention:** Implemented an early authorization check using a query parameter (`organization_id`) to verify permissions *before* reading or parsing the request body. This required updating the frontend to send the ID in the URL.
