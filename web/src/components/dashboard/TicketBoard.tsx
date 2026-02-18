@@ -70,9 +70,9 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
             {createdDate}
           </span>
       </div>
-      <h4 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
+      <h3 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
         {ticket.title}
-      </h4>
+      </h3>
       <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
           <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
       </div>
@@ -99,24 +99,32 @@ const TicketColumn = memo(function TicketColumn({ column, tickets, density, navi
       )}
     >
       <div className="p-3 font-semibold text-gray-700 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
-        <span>{column.label}</span>
-        <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+        <h2 className="text-base font-semibold text-gray-700 m-0">{column.label}</h2>
+        <span
+          className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full"
+          aria-label={`${tickets?.length || 0} tickets`}
+        >
           {tickets?.length || 0}
         </span>
       </div>
-      <div className="p-2 overflow-y-auto flex-1 space-y-2">
+      <ul
+        className="p-2 overflow-y-auto flex-1 space-y-2"
+        role="list"
+        aria-label={`${column.label} tickets`}
+      >
         {tickets?.map((ticket) => (
-          <TicketCard
-            key={ticket.id}
-            ticket={ticket}
-            density={density}
-            navigate={navigate}
-          />
+          <li key={ticket.id}>
+            <TicketCard
+              ticket={ticket}
+              density={density}
+              navigate={navigate}
+            />
+          </li>
         ))}
         {!tickets?.length && (
-          <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>
+          <li className="text-center text-gray-500 text-sm py-4 italic">No tickets</li>
         )}
-      </div>
+      </ul>
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -172,7 +180,10 @@ const TicketBoard = memo(function TicketBoard({
   if (error) return <div className="p-8 text-center text-red-500">Error loading tickets</div>;
 
   return (
-    <div className="flex h-full overflow-x-auto space-x-4 pb-4">
+    <section
+      className="flex h-full overflow-x-auto space-x-4 pb-4"
+      aria-label="Ticket Board"
+    >
       {columns.map((column) => (
         <TicketColumn
           key={column.id}
@@ -182,7 +193,7 @@ const TicketBoard = memo(function TicketBoard({
           navigate={navigate}
         />
       ))}
-    </div>
+    </section>
   );
 });
 
