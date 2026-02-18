@@ -1105,6 +1105,15 @@ func TestUpdateTicket(t *testing.T) {
 			},
 		},
 		{
+			name:           "DoS Prevention - Rejects JSON body > 1MB",
+			body:           &LargeReader{Size: (1 << 20) + 1024}, // 1MB + 1KB
+			expectedStatus: http.StatusRequestEntityTooLarge,
+			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+				mo.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil)
+			},
+		},
+		{
 			name: "DoS Prevention - Rejects title too long",
 			body: map[string]string{
 				"title": LargeString(250), // Limit is 200
