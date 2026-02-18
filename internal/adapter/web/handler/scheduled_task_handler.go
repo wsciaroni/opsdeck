@@ -92,6 +92,8 @@ func (h *ScheduledTaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateScheduledTaskRequest
+	var accessChecked bool
+	var checkedOrgID uuid.UUID
 
 	user := middleware.GetUser(r.Context())
 	if user == nil {
@@ -113,6 +115,8 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
+		accessChecked = true
+		checkedOrgID = orgID
 	}
 
 	// Limit request size to 1MB to prevent DoS
@@ -126,9 +130,8 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if queryOrgID := r.URL.Query().Get("organization_id"); queryOrgID != "" {
-		qUUID, _ := uuid.Parse(queryOrgID)
-		if req.OrganizationID != qUUID {
+	if accessChecked {
+		if req.OrganizationID != checkedOrgID {
 			http.Error(w, "Organization ID mismatch", http.StatusBadRequest)
 			return
 		}
@@ -148,9 +151,11 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Security Check: Only Admin/Owner can create tasks
-	if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
+	if !accessChecked {
+		if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	cmd := port.CreateScheduledTaskCmd{
