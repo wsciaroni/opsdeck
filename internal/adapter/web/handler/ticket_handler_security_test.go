@@ -3,9 +3,11 @@ package handler_test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -275,4 +277,93 @@ func TestCreatePublicTicket_Mismatch_Prevention(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestTicketHandler_InputLength(t *testing.T) {
+	user := &domain.User{ID: uuid.New(), Role: domain.RoleStaff}
+	orgID := uuid.New()
+	ticketID := uuid.New()
+	ticket := &domain.Ticket{ID: ticketID, OrganizationID: orgID}
+
+	tests := []struct {
+		name        string
+		method      string
+		url         string
+		reqBody     map[string]interface{}
+		expectError string
+		setupMocks  func(*MockTicketService, *MockOrgRepo)
+	}{
+		{
+			name:   "CreateTicket - Location Too Long",
+			method: "POST",
+			url:    "/tickets?organization_id=" + orgID.String(),
+			reqBody: map[string]interface{}{
+				"organization_id": orgID,
+				"title":           "Valid Title",
+				"description":     "Valid Description",
+				"location":        strings.Repeat("A", 201), // Limit 200
+				"priority_id":     "medium",
+			},
+			expectError: "Location",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("CreateTicket", mock.Anything, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+		{
+			name:   "UpdateTicket - Location Too Long",
+			method: "PATCH",
+			url:    "/tickets/" + ticketID.String(),
+			reqBody: map[string]interface{}{
+				"location": strings.Repeat("A", 201),
+			},
+			expectError: "Location",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+		{
+			name:   "UpdateTicket - AssigneeCustomName Too Long",
+			method: "PATCH",
+			url:    "/tickets/" + ticketID.String(),
+			reqBody: map[string]interface{}{
+				"assignee_custom_name": strings.Repeat("A", 101), // Limit 100
+			},
+			expectError: "Assignee Name",
+			setupMocks: func(ms *MockTicketService, mor *MockOrgRepo) {
+				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil).Maybe()
+				mor.On("GetMemberRole", mock.Anything, orgID, user.ID).Return("member", nil).Maybe()
+				ms.On("UpdateTicket", mock.Anything, ticketID, mock.Anything).Return(ticket, nil).Maybe()
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService := new(MockTicketService)
+			mockOrgRepo := new(MockOrgRepo)
+			h := handler.NewTicketHandler(mockService, mockOrgRepo, nil, nil)
+			r := chi.NewRouter()
+			r.Post("/tickets", h.CreateTicket)
+			r.Patch("/tickets/{ticketID}", h.UpdateTicket)
+
+			if tc.setupMocks != nil {
+				tc.setupMocks(mockService, mockOrgRepo)
+			}
+
+			bodyBytes, _ := json.Marshal(tc.reqBody)
+			req := httptest.NewRequest(tc.method, tc.url, bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.Contains(t, w.Body.String(), tc.expectError)
+		})
+	}
 }

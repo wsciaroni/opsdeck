@@ -503,6 +503,10 @@ func (h *TicketHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Description too long", http.StatusBadRequest)
 		return
 	}
+	if len(req.Location) > 200 {
+		http.Error(w, "Location too long", http.StatusBadRequest)
+		return
+	}
 
 	cmd := port.CreateTicketCmd{
 		OrganizationID: req.OrganizationID,
@@ -700,6 +704,14 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	if req.Description != nil && len(*req.Description) > 5000 {
 		http.Error(w, "Description too long", http.StatusBadRequest)
+		return
+	}
+	if req.Location != nil && len(*req.Location) > 200 {
+		http.Error(w, "Location too long", http.StatusBadRequest)
+		return
+	}
+	if req.AssigneeCustomName != nil && len(*req.AssigneeCustomName) > 100 {
+		http.Error(w, "Assignee Name too long", http.StatusBadRequest)
 		return
 	}
 

@@ -111,6 +111,10 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
 		return
 	}
+	if len(req.Location) > 200 {
+		http.Error(w, "Location too long", http.StatusBadRequest)
+		return
+	}
 
 	user := middleware.GetUser(r.Context())
 	if user == nil {
@@ -201,6 +205,10 @@ func (h *ScheduledTaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != nil && len(*req.Description) > 5000 {
 		http.Error(w, "Description too long (max 5000 chars)", http.StatusBadRequest)
+		return
+	}
+	if req.Location != nil && len(*req.Location) > 200 {
+		http.Error(w, "Location too long", http.StatusBadRequest)
 		return
 	}
 

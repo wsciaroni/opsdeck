@@ -129,76 +129,79 @@ func TestScheduledTaskHandler_Security(t *testing.T) {
 	user := &domain.User{ID: uuid.New()}
 	orgID := uuid.New()
 
-	// Pre-setup for membership check which happens AFTER body read/validation in some handlers,
-	// but BEFORE in others?
-	// In Create: Decode -> User Check -> Membership Check.
-	// So validation happens AFTER Decode.
-	// If Decode fails due to size, it returns early.
-	// If Decode succeeds, it validates fields.
-	// So we don't need mocks for Body Too Large or Invalid Input.
+	tests := []struct {
+		name         string
+		method       string
+		url          string
+		reqBody      interface{} // Can be map or LargeReader
+		expectStatus int
+		expectError  string
+		setupMocks   func()
+	}{
+		{
+			name: "DoS Prevention - Create Task Body Too Large",
+			method: "POST",
+			url: "/scheduled-tasks",
+			reqBody: map[string]string{"title": RepeatString("A", 1048576)},
+			expectStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name: "Input Validation - Title Too Long",
+			method: "POST",
+			url: "/scheduled-tasks",
+			reqBody: map[string]interface{}{
+				"organization_id": orgID,
+				"title": RepeatString("A", 201),
+			},
+			expectStatus: http.StatusBadRequest,
+			expectError: "Title must be between",
+		},
+		{
+			name: "Input Validation - Description Too Long",
+			method: "POST",
+			url: "/scheduled-tasks",
+			reqBody: map[string]interface{}{
+				"organization_id": orgID,
+				"title": "Valid Title",
+				"description": RepeatString("A", 5001),
+			},
+			expectStatus: http.StatusBadRequest,
+			expectError: "Description too long",
+		},
+		{
+			name: "Input Validation - Location Too Long",
+			method: "POST",
+			url: "/scheduled-tasks",
+			reqBody: map[string]interface{}{
+				"organization_id": orgID,
+				"title": "Valid Title",
+				"description": "Valid Description",
+				"location": RepeatString("A", 201),
+			},
+			expectStatus: http.StatusBadRequest,
+			expectError: "Location",
+		},
+	}
 
-	t.Run("DoS Prevention - Create Task Body Too Large", func(t *testing.T) {
-		padding := RepeatString("A", 1048576)
-		reqBody := map[string]string{"title": padding}
-		bodyBytes, _ := json.Marshal(reqBody)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			bodyBytes, _ := json.Marshal(tc.reqBody)
+			req := httptest.NewRequest(tc.method, tc.url, bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
 
-		req := httptest.NewRequest("POST", "/scheduled-tasks", bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
 
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
-	})
-
-	t.Run("Input Validation - Title Too Long", func(t *testing.T) {
-		longTitle := RepeatString("A", 201)
-		reqBody := map[string]interface{}{
-			"organization_id": orgID,
-			"title": longTitle,
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("POST", "/scheduled-tasks", bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
-
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Title must be between")
-	})
-
-	t.Run("Input Validation - Description Too Long", func(t *testing.T) {
-		longDesc := RepeatString("A", 5001)
-		reqBody := map[string]interface{}{
-			"organization_id": orgID,
-			"title": "Valid Title",
-			"description": longDesc,
-		}
-		bodyBytes, _ := json.Marshal(reqBody)
-
-		req := httptest.NewRequest("POST", "/scheduled-tasks", bytes.NewReader(bodyBytes))
-		req.Header.Set("Content-Type", "application/json")
-
-		ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
-		req = req.WithContext(ctx)
-
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Description too long")
-	})
+			assert.Equal(t, tc.expectStatus, w.Code)
+			if tc.expectError != "" {
+				assert.Contains(t, w.Body.String(), tc.expectError)
+			}
+		})
+	}
 
 	t.Run("DoS Prevention - Update Task Body Too Large", func(t *testing.T) {
-		// Expect GetTask and Auth check because we moved them before body read
 		taskID := uuid.New()
 		task := &domain.ScheduledTask{ID: taskID, OrganizationID: orgID}
 		mockService.On("GetTask", mock.Anything, taskID).Return(task, nil)
