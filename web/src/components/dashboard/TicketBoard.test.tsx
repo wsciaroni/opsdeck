@@ -1,16 +1,8 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import TicketBoard from './TicketBoard';
 import { BrowserRouter } from 'react-router-dom';
 import type { Ticket } from '../../types';
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => vi.fn(),
-  };
-});
 
 const mockTickets: Ticket[] = [
   {
@@ -63,6 +55,28 @@ describe('TicketBoard', () => {
     expect(screen.getByText('Test Ticket 1')).toBeInTheDocument();
     expect(screen.getByText('Test Ticket 2')).toBeInTheDocument();
     expect(screen.getByText('Assignee One')).toBeInTheDocument();
+  });
+
+  it('renders tickets as accessible links', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    const link1 = screen.getByRole('link', { name: /Test Ticket 1/i });
+    expect(link1).toHaveAttribute('href', '/tickets/1');
+    expect(link1).toHaveAttribute('aria-label', expect.stringContaining('Test Ticket 1'));
+    expect(link1).toHaveAttribute('aria-label', expect.stringContaining('high priority'));
+
+    const link2 = screen.getByRole('link', { name: /Test Ticket 2/i });
+    expect(link2).toHaveAttribute('href', '/tickets/2');
   });
 
   it('renders loading state', () => {
