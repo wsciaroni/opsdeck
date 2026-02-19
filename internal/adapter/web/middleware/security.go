@@ -1,8 +1,14 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"os"
+)
 
 func SecurityHeaders(next http.Handler) http.Handler {
+	// Check environment once at startup
+	isDev := os.Getenv("APP_ENV") == "development"
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Prevent clickjacking
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -16,6 +22,12 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ui-avatars.com; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self';")
 		// Permissions Policy
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+
+		// Strict Transport Security (HSTS)
+		// Only enable in production-like environments to avoid breaking local dev over HTTP
+		if !isDev {
+			w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		}
 
 		next.ServeHTTP(w, r)
 	})
