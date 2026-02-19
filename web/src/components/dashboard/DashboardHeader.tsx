@@ -3,7 +3,7 @@ import { type Density } from './TicketList';
 import clsx from 'clsx';
 import type { Organization } from '../../types';
 import FilterPopover from './FilterPopover';
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, type Dispatch, type SetStateAction } from 'react';
 
 interface DashboardHeaderProps {
   currentOrg: Organization | null;
@@ -14,9 +14,9 @@ interface DashboardHeaderProps {
   setDensity: (density: Density) => void;
   onSearch: (query: string) => void;
   priority: string[] | undefined;
-  setPriority: (priority: string[] | undefined) => void;
+  setPriority: Dispatch<SetStateAction<string[] | undefined>>;
   status: string[] | undefined;
-  setStatus: (status: string[] | undefined) => void;
+  setStatus: Dispatch<SetStateAction<string[] | undefined>>;
   sortBy: string;
   setSortBy: (sortBy: string) => void;
   sortOrder: 'asc' | 'desc';

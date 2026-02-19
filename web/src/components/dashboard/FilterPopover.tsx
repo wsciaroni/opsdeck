@@ -1,14 +1,14 @@
 import { Popover, Transition } from '@headlessui/react';
-import { Fragment, memo, useCallback } from 'react';
+import { Fragment, memo, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { Filter } from 'lucide-react';
 import { TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import clsx from 'clsx';
 
 interface FilterPopoverProps {
   status: string[] | undefined;
-  setStatus: (status: string[] | undefined) => void;
+  setStatus: Dispatch<SetStateAction<string[] | undefined>>;
   priority: string[] | undefined;
-  setPriority: (priority: string[] | undefined) => void;
+  setPriority: Dispatch<SetStateAction<string[] | undefined>>;
 }
 
 // Optimized: Memoize individual checkbox to prevent re-rendering list when other items change.
