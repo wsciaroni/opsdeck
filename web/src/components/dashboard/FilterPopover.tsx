@@ -1,5 +1,5 @@
 import { Popover, Transition } from '@headlessui/react';
-import { Fragment, memo } from 'react';
+import { Fragment, memo, useCallback } from 'react';
 import { Filter } from 'lucide-react';
 import { TICKET_STATUSES, TICKET_PRIORITIES } from '../../types';
 import clsx from 'clsx';
@@ -10,6 +10,33 @@ interface FilterPopoverProps {
   priority: string[] | undefined;
   setPriority: (priority: string[] | undefined) => void;
 }
+
+// Optimized: Memoize individual checkbox to prevent re-rendering list when other items change.
+const FilterCheckbox = memo(function FilterCheckbox({
+  id,
+  label,
+  checked,
+  onChange
+}: {
+  id: string,
+  label: string,
+  checked: boolean,
+  onChange: (id: string) => void
+}) {
+  return (
+    <label className="flex items-center space-x-2 cursor-pointer">
+        <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            checked={checked}
+            onChange={() => onChange(id)}
+        />
+        <span className={clsx("text-sm", checked ? "text-gray-900" : "text-gray-500")}>
+            {label}
+        </span>
+    </label>
+  );
+});
 
 // Memoized to prevent unnecessary re-renders when parent DashboardHeader updates (e.g. on search input change)
 const FilterPopover = memo(function FilterPopover({
@@ -34,55 +61,57 @@ const FilterPopover = memo(function FilterPopover({
     return priority.includes(id);
   };
 
-  const toggleStatus = (id: string) => {
-    let newStatus: string[];
+  const toggleStatus = useCallback((id: string) => {
+    setStatus((prevStatus) => {
+      let newStatus: string[];
 
-    // If currently undefined (Default), start with Active set
-    if (status === undefined) {
-      newStatus = TICKET_STATUSES.filter((t) => !t.isFinished).map((t) => t.id);
-    } else {
-      newStatus = [...status];
-    }
+      // If currently undefined (Default), start with Active set
+      if (prevStatus === undefined) {
+        newStatus = TICKET_STATUSES.filter((t) => !t.isFinished).map((t) => t.id);
+      } else {
+        newStatus = [...prevStatus];
+      }
 
-    if (newStatus.includes(id)) {
-      newStatus = newStatus.filter((s) => s !== id);
-    } else {
-      newStatus.push(id);
-    }
+      if (newStatus.includes(id)) {
+        newStatus = newStatus.filter((s) => s !== id);
+      } else {
+        newStatus.push(id);
+      }
 
-    // If empty, user probably wants to see "All" (cleared filter), so we select ALL explicitly
-    // because sending nothing triggers "Active" default in backend.
-    if (newStatus.length === 0) {
-       newStatus = TICKET_STATUSES.map(t => t.id);
-    }
+      // If empty, user probably wants to see "All" (cleared filter), so we select ALL explicitly
+      // because sending nothing triggers "Active" default in backend.
+      if (newStatus.length === 0) {
+        newStatus = TICKET_STATUSES.map(t => t.id);
+      }
+      return newStatus;
+    });
+  }, [setStatus]);
 
-    setStatus(newStatus);
-  };
+  const togglePriority = useCallback((id: string) => {
+    setPriority((prevPriority) => {
+      let newPriority: string[];
+      // If undefined/empty (All), start with All
+      if (!prevPriority || prevPriority.length === 0) {
+        newPriority = TICKET_PRIORITIES.map(p => p.id);
+      } else {
+        newPriority = [...prevPriority];
+      }
 
-  const togglePriority = (id: string) => {
-    let newPriority: string[];
-    // If undefined/empty (All), start with All
-    if (!priority || priority.length === 0) {
-       newPriority = TICKET_PRIORITIES.map(p => p.id);
-    } else {
-       newPriority = [...priority];
-    }
+      if (newPriority.includes(id)) {
+        newPriority = newPriority.filter((p) => p !== id);
+      } else {
+        newPriority.push(id);
+      }
 
-    if (newPriority.includes(id)) {
-      newPriority = newPriority.filter((p) => p !== id);
-    } else {
-      newPriority.push(id);
-    }
+      // If empty, set to undefined (All)
+      if (newPriority.length === 0) {
+          return undefined;
+      }
+      return newPriority;
+    });
+  }, [setPriority]);
 
-    // If empty, set to undefined (All)
-    if (newPriority.length === 0) {
-        setPriority(undefined);
-    } else {
-        setPriority(newPriority);
-    }
-  };
-
-  const handleMinPriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleMinPriorityChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (!value || value === 'any') {
       setPriority(undefined); // Any
@@ -92,12 +121,12 @@ const FilterPopover = memo(function FilterPopover({
     const level = Number.parseInt(value, 10);
     const newPrio = TICKET_PRIORITIES.filter((p) => p.level >= level).map((p) => p.id);
     setPriority(newPrio);
-  };
+  }, [setPriority]);
 
-  const resetToDefault = () => {
+  const resetToDefault = useCallback(() => {
     setStatus(undefined);
     setPriority(undefined);
-  };
+  }, [setStatus, setPriority]);
 
   const isDefault = status === undefined && (priority === undefined || priority.length === 0);
 
@@ -152,17 +181,13 @@ const FilterPopover = memo(function FilterPopover({
                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Status</h4>
                     <div className="space-y-2">
                         {TICKET_STATUSES.map((s) => (
-                            <label key={s.id} className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    checked={isStatusChecked(s.id)}
-                                    onChange={() => toggleStatus(s.id)}
-                                />
-                                <span className={clsx("text-sm", isStatusChecked(s.id) ? "text-gray-900" : "text-gray-500")}>
-                                    {s.label}
-                                </span>
-                            </label>
+                          <FilterCheckbox
+                            key={s.id}
+                            id={s.id}
+                            label={s.label}
+                            checked={isStatusChecked(s.id)}
+                            onChange={toggleStatus}
+                          />
                         ))}
                     </div>
                 </div>
@@ -189,17 +214,13 @@ const FilterPopover = memo(function FilterPopover({
 
                     <div className="space-y-2">
                         {TICKET_PRIORITIES.map((p) => (
-                            <label key={p.id} className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    checked={isPriorityChecked(p.id)}
-                                    onChange={() => togglePriority(p.id)}
-                                />
-                                <span className={clsx("text-sm", isPriorityChecked(p.id) ? "text-gray-900" : "text-gray-500")}>
-                                    {p.label}
-                                </span>
-                            </label>
+                          <FilterCheckbox
+                            key={p.id}
+                            id={p.id}
+                            label={p.label}
+                            checked={isPriorityChecked(p.id)}
+                            onChange={togglePriority}
+                          />
                         ))}
                     </div>
                 </div>

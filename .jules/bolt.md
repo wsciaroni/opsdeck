@@ -9,3 +9,7 @@
 ## 2024-05-25 - Expensive Date Formatting in Render Loop
 **Learning:** Repeatedly calling `new Date().toLocaleDateString()` inside a large list render loop is expensive because it parses the date string and creates a new formatter instance every time.
 **Action:** Use a cached `Intl.DateTimeFormat` instance outside the component or in a utility function to format dates efficiently.
+
+## 2024-05-26 - Memoizing Filter Checkboxes
+**Learning:** Rendering checkboxes in a loop with inline arrow functions causes unnecessary re-renders of all items when one changes. Extracting to a memoized component and using stable callbacks prevents this.
+**Action:** Always extract list items with interactivity to memoized components and ensure callbacks are stable.
