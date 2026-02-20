@@ -4,6 +4,9 @@ import toast from 'react-hot-toast';
 export const client = axios.create({
   baseURL: '/api',
   withCredentials: true,
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',
+  },
 });
 
 client.interceptors.response.use(

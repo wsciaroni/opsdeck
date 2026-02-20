@@ -1,5 +1,6 @@
-import axios from 'axios';
+import { client } from './client';
 
 export async function logout(): Promise<void> {
-  await axios.post('/auth/logout');
+  // Override baseURL since auth routes are at root, not under /api
+  await client.post('/auth/logout', null, { baseURL: '/' });
 }
