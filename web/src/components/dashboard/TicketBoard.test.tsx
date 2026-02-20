@@ -118,4 +118,39 @@ describe('TicketBoard', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
   });
+
+  it('renders semantic HTML structure', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            visibleStatuses={['new']}
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    // Check for Column Header (h2)
+    const columnHeader = screen.getByRole('heading', { level: 2, name: /New/i });
+    expect(columnHeader).toBeInTheDocument();
+
+    // Check for Ticket List (ul)
+    const list = screen.getByRole('list');
+    expect(list).toBeInTheDocument();
+
+    // Check for Ticket Item (li)
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems.length).toBeGreaterThan(0);
+
+    // Check for Ticket Title (h3)
+    const ticketTitle = screen.getByRole('heading', { level: 3, name: 'Test Ticket 1' });
+    expect(ticketTitle).toBeInTheDocument();
+
+    // Check for Ticket Link (a)
+    const link = screen.getByRole('link', { name: /Test Ticket 1/i });
+    expect(link).toHaveAttribute('href', '/tickets/1');
+  });
 });

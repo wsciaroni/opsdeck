@@ -1,5 +1,5 @@
 import { useMemo, memo } from 'react';
-import { useNavigate, type NavigateFunction } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { type Ticket, TICKET_STATUSES } from '../../types';
 import { PriorityLabel } from '../TicketAttributes';
 import clsx from 'clsx';
@@ -18,7 +18,6 @@ interface TicketBoardProps {
 interface TicketCardProps {
   ticket: Ticket;
   density: Density;
-  navigate: NavigateFunction;
 }
 
 // Optimization: Hoist style constants to prevent object allocation on every render
@@ -40,27 +39,18 @@ const COLUMN_WIDTH_CLASSES: Record<Density, string> = {
   comfortable: 'min-w-[18rem]',
 };
 
-const TicketCard = memo(function TicketCard({ ticket, density, navigate }: TicketCardProps) {
+const TicketCard = memo(function TicketCard({ ticket, density }: TicketCardProps) {
   // Optimization: use pre-defined constants
   const paddingClass = PADDING_CLASSES[density];
   const fontSizeClass = FONT_SIZE_CLASSES[density];
 
-  const handleKeyDown = (e: React.KeyboardEvent, ticketId: string) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      navigate(`/tickets/${ticketId}`);
-    }
-  };
-
   const createdDate = formatDate(ticket.created_at);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => navigate(`/tickets/${ticket.id}`)}
-      onKeyDown={(e) => handleKeyDown(e, ticket.id)}
+    <Link
+      to={`/tickets/${ticket.id}`}
       className={clsx(
-        "bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
+        "block bg-white rounded border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-indigo-500",
         paddingClass
       )}
     >
@@ -70,13 +60,13 @@ const TicketCard = memo(function TicketCard({ ticket, density, navigate }: Ticke
             {createdDate}
           </span>
       </div>
-      <h4 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
+      <h3 className={clsx("font-medium text-gray-900 mb-2 line-clamp-2", fontSizeClass)}>
         {ticket.title}
-      </h4>
+      </h3>
       <div className="flex justify-between items-center text-xs text-gray-500 mt-auto">
           <span>{ticket.assignee_name || ticket.assignee_user_id || 'Unassigned'}</span>
       </div>
-    </div>
+    </Link>
   );
 });
 
@@ -84,11 +74,10 @@ interface TicketColumnProps {
   column: typeof TICKET_STATUSES[number];
   tickets: Ticket[] | undefined;
   density: Density;
-  navigate: NavigateFunction;
 }
 
 // Optimized: Memoize column to prevent re-rendering unchanged columns when other tickets change.
-const TicketColumn = memo(function TicketColumn({ column, tickets, density, navigate }: TicketColumnProps) {
+const TicketColumn = memo(function TicketColumn({ column, tickets, density }: TicketColumnProps) {
   const columnWidthClass = COLUMN_WIDTH_CLASSES[density];
 
   return (
@@ -98,25 +87,25 @@ const TicketColumn = memo(function TicketColumn({ column, tickets, density, navi
         columnWidthClass
       )}
     >
-      <div className="p-3 font-semibold text-gray-700 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
+      <h2 className="p-3 font-semibold text-gray-700 text-base m-0 flex justify-between items-center sticky top-0 bg-gray-100 z-10 rounded-t-lg">
         <span>{column.label}</span>
         <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
           {tickets?.length || 0}
         </span>
-      </div>
-      <div className="p-2 overflow-y-auto flex-1 space-y-2">
+      </h2>
+      <ul className="p-2 overflow-y-auto flex-1 space-y-2">
         {tickets?.map((ticket) => (
-          <TicketCard
-            key={ticket.id}
-            ticket={ticket}
-            density={density}
-            navigate={navigate}
-          />
+          <li key={ticket.id}>
+            <TicketCard
+              ticket={ticket}
+              density={density}
+            />
+          </li>
         ))}
         {!tickets?.length && (
           <div className="text-center text-gray-500 text-sm py-4 italic">No tickets</div>
         )}
-      </div>
+      </ul>
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -145,9 +134,6 @@ const TicketBoard = memo(function TicketBoard({
   density,
   visibleStatuses,
 }: TicketBoardProps) {
-  // Optimization: Hoist useNavigate to avoid calling it in every card
-  const navigate = useNavigate();
-
   // Memoize grouping logic to prevent O(N) recalculation on every render (e.g. density change or modal open)
   const ticketsByStatus = useMemo(() => {
     const groups: Record<string, Ticket[]> = {};
@@ -179,7 +165,6 @@ const TicketBoard = memo(function TicketBoard({
           column={column}
           tickets={ticketsByStatus[column.id]}
           density={density}
-          navigate={navigate}
         />
       ))}
     </div>
