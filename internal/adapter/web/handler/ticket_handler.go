@@ -687,7 +687,7 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	var req UpdateTicketRequest
 	// Limit request size to prevent DoS
-	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestSize)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxJSONBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		if strings.Contains(err.Error(), "request body too large") {
 			http.Error(w, "Request too large", http.StatusRequestEntityTooLarge)

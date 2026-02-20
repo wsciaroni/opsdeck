@@ -1097,7 +1097,8 @@ func TestUpdateTicket(t *testing.T) {
 	}{
 		{
 			name:           "DoS Prevention - Rejects body too large (when authorized)",
-			body:           &LargeReader{Size: handler.MaxRequestSize + 1024},
+			// Updated to verify 1MB limit (MaxJSONBodySize) instead of 32MB
+			body:           &LargeReader{Size: handler.MaxJSONBodySize + 1024},
 			expectedStatus: http.StatusRequestEntityTooLarge,
 			setupMocks: func(ms *MockTicketService, mo *MockOrgRepo) {
 				ms.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
