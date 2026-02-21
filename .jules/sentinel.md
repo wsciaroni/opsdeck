@@ -1,43 +1,4 @@
-## 2026-01-21 - Session Hijacking via Raw UUID Cookies
-**Vulnerability:** The application used raw User UUIDs as session cookies (session_id). This allowed attackers to impersonate any user by guessing or obtaining their UUID and setting it as the cookie value.
-**Learning:** MVP/Prototype code often uses simplified authentication ("For now, return user ID") which becomes a critical vulnerability if not replaced before production or wider testing. The AuthMiddleware blindly trusted the cookie value.
-**Prevention:** Always cryptographically sign session tokens (JWT, signed cookies) or use a server-side session store with random high-entropy tokens. Never trust client-side identifiers for authentication without verification.
-
-## 2024-05-23 - [SQL Injection and CSRF Analysis]
-**Vulnerability:**
-1.  **CSRF (High/Critical):** The application relies on `session_id` cookie for authentication (`internal/adapter/web/middleware/auth.go`) but does not implement any CSRF protection (middleware or token verification).
-2.  **SQL Injection (Safe):** The SQL construction in `internal/adapter/storage/postgres/ticket_repo.go` uses `fmt.Sprintf` only for placeholders (e.g., `$1`, `$2`), which is safe as long as the arguments are passed separately to `Query/QueryRow`. The repository code looks clean in this regard.
-
-**Learning:** Go's `database/sql` and `pgx` encourage parameterized queries, but manual query building with `fmt.Sprintf` can be risky if not done carefully. In this case, it is done correctly for dynamic filtering.
-
-**Prevention:** To prevent CSRF, we should implement the "Double Submit Cookie" pattern or use a Synchronizer Token Pattern. Since the frontend is React, we can have the backend set a `X-CSRF-Token` cookie (httpOnly=false) and require the frontend to read it and send it back in a header `X-CSRF-Token`. Or, more simply for this exercise, we can add basic Security Headers as a quick win if CSRF is too complex for "one small fix".
-
-## 2026-01-22 - OAuth CSRF Protection via State Parameter
-**Vulnerability:** The OAuth flow used a hardcoded state parameter ("state-random-string"), making it vulnerable to CSRF/Account Takeover attacks where an attacker could force a user to log in to the attacker's account.
-**Learning:** OAuth `state` parameter must be a unique, unguessable, cryptographically secure random string bound to the user's session (e.g., via a cookie) and verified in the callback.
-**Prevention:** Implemented a `generateState` helper using `crypto/rand` and an `oauth_state` cookie (HTTPOnly, Secure, Lax) to store and verify the state during the OAuth dance.
-
-## 2026-01-22 - CSV Injection (Formula Injection) in Exports
-**Vulnerability:** The ticket export functionality (`ExportTickets`) directly included user-controlled input (`Title`, `Description`) in CSV files. If these fields started with `=`, `+`, `-`, or `@`, they would be executed as formulas by spreadsheet software (Excel, Sheets), potentially leading to command execution or data exfiltration.
-**Learning:** CSV is not just text; it's a file format that spreadsheet software interprets. Any user input going into a CSV must be sanitized.
-**Prevention:** Prepend a single quote `'` to any field starting with the dangerous characters (`=`, `+`, `-`, `@`) to force the spreadsheet software to treat it as a literal string.
-
-## 2026-01-23 - Denial of Service via Unbounded Request Body
-**Vulnerability:** The `CreatePublicTicket` and `CreateTicket` endpoints allowed unlimited request body sizes, enabling DoS attacks via massive file uploads or JSON payloads. `ParseMultipartForm` limits memory usage but not the total read size (files spill to disk).
-**Learning:** `r.ParseMultipartForm(maxMemory)` only limits the amount of memory used for parsing parts. It does **not** prevent the server from reading the entire request body. To prevent DoS, `http.MaxBytesReader` must be used to limit the total read size.
-**Prevention:** Wrap `r.Body` with `http.MaxBytesReader(w, r.Body, MaxSize)` at the start of handlers dealing with uploads or untrusted input.
-
-## 2026-02-05 - Missing Rate Limiting on Login Initialization
-**Vulnerability:** The `/auth/login` endpoint, which initiates the OIDC flow, was not rate-limited. This could allow an attacker to launch a DoS attack by exhausting server resources (state generation) or triggering excessive upstream OIDC requests.
-**Learning:** Authentication initiation endpoints are often overlooked for rate limiting because they are "public" by necessity, but they can be abused to cause resource exhaustion.
-**Prevention:** Applied the `RateLimiter` middleware to the `/auth/login` endpoint with a limit of 20 requests per minute per IP.
-
-## 2026-02-06 - Persistent Session Hijacking via Non-Expiring Signed Tokens
-**Vulnerability:** The session signing mechanism (`SignSessionID`) verified the authenticity of the session ID but not its age. A stolen cookie could be used indefinitely to impersonate the user, even if the client-side cookie expired.
-**Learning:** Cryptographic signatures only prove *who* signed the data, not *when* or if it's still valid. Stateful expiration (in DB) or stateless expiration (in token payload) is mandatory.
-**Prevention:** Included an expiration timestamp in the signed payload (`id.expires_at.signature`) and enforced it in the `AuthMiddleware`. This ensures tokens automatically become invalid after the set duration (e.g., 24 hours).
-
-## 2026-02-07 - Application-Layer DoS via Unauthorized Large Request Body
-**Vulnerability:** The `Create` endpoint for Scheduled Tasks decoded the JSON request body (up to 1MB) *before* verifying if the user had permission to create a task for the specified organization. This allowed authenticated but unauthorized users to consume server resources by sending large payloads.
-**Learning:** Checking authorization *after* parsing the request body is inefficient and risky. While `http.MaxBytesReader` limits the total size, parsing JSON still consumes CPU and memory.
-**Prevention:** Implemented an early authorization check using a query parameter (`organization_id`) to verify permissions *before* reading or parsing the request body. This required updating the frontend to send the ID in the URL.
+## 2024-05-23 - Access Check vs Permission Check Conflation
+**Vulnerability:** Found that `TicketHandler.UpdateTicket` allowed any organization member (Staff) to toggle the `Sensitive` flag, which is restricted to Managers (Admin/Owner) by requirements. The handler only verified *membership* in the organization, not the *permission* to modify specific fields.
+**Learning:** The codebase uses `getTicketAndVerifyAccess` which confirms the user belongs to the organization, but this was mistakenly used as a sufficient check for all update operations. Granular permissions (like toggling sensitivity) were missing.
+**Prevention:** Separate resource access checks (can I see this ticket?) from action permission checks (can I update this field?). Ensure handlers explicitly validate permissions for sensitive operations or fields.

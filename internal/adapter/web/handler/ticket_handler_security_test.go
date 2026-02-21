@@ -367,3 +367,87 @@ func TestTicketHandler_InputLength(t *testing.T) {
 		})
 	}
 }
+
+func TestTicketUpdate_SensitiveFlag(t *testing.T) {
+	ticketID := uuid.New()
+	orgID := uuid.New()
+	userID := uuid.New()
+
+	ticket := &domain.Ticket{
+		ID:             ticketID,
+		OrganizationID: orgID,
+		Title:          "Original Title",
+		Sensitive:      false,
+	}
+
+	tests := []struct {
+		name           string
+		userRole       string
+		orgRole        string
+		reqSensitive   bool
+		expectedStatus int
+	}{
+		{
+			name:           "Member Cannot Toggle Sensitive",
+			userRole:       "staff",
+			orgRole:        "member",
+			reqSensitive:   true,
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "Admin Can Toggle Sensitive",
+			userRole:       "admin",
+			orgRole:        "admin",
+			reqSensitive:   true,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Owner Can Toggle Sensitive",
+			userRole:       "staff", // Role in system doesn't matter, org role matters
+			orgRole:        "owner",
+			reqSensitive:   true,
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService := new(MockTicketService)
+			mockOrgRepo := new(MockOrgRepo)
+			mockUserRepo := new(MockUserRepo)
+			h := handler.NewTicketHandler(mockService, mockOrgRepo, mockUserRepo, nil)
+
+			r := chi.NewRouter()
+			r.Patch("/tickets/{ticketID}", h.UpdateTicket)
+
+			user := &domain.User{
+				ID:   userID,
+				Role: domain.Role(tc.userRole),
+			}
+
+			mockService.On("GetTicket", mock.Anything, ticketID).Return(ticket, nil)
+			mockOrgRepo.On("GetMemberRole", mock.Anything, orgID, userID).Return(tc.orgRole, nil)
+
+			if tc.expectedStatus == http.StatusOK {
+				mockService.On("UpdateTicket", mock.Anything, ticketID, mock.MatchedBy(func(cmd port.UpdateTicketCmd) bool {
+					return cmd.Sensitive != nil && *cmd.Sensitive == tc.reqSensitive
+				})).Return(ticket, nil)
+			}
+
+			reqBody := map[string]interface{}{
+				"sensitive": tc.reqSensitive,
+			}
+			bodyBytes, _ := json.Marshal(reqBody)
+
+			req := httptest.NewRequest("PATCH", "/tickets/"+ticketID.String(), bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), middleware.UserContextKey, user)
+			req = req.WithContext(ctx)
+			w := httptest.NewRecorder()
+
+			r.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+		})
+	}
+}

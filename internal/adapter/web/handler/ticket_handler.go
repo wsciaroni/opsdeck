@@ -81,7 +81,7 @@ func (h *TicketHandler) GetTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticket, _, ok := h.getTicketAndVerifyAccess(w, r, id)
+	ticket, _, _, ok := h.getTicketAndVerifyAccess(w, r, id)
 	if !ok {
 		return
 	}
@@ -680,7 +680,7 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 
 	// Security Check: Get existing ticket and verify user membership BEFORE reading body
 	// This prevents DoS attacks where unauthorized users send large bodies
-	_, _, ok := h.getTicketAndVerifyAccess(w, r, id)
+	_, _, role, ok := h.getTicketAndVerifyAccess(w, r, id)
 	if !ok {
 		return
 	}
@@ -713,6 +713,14 @@ func (h *TicketHandler) UpdateTicket(w http.ResponseWriter, r *http.Request) {
 	if req.AssigneeCustomName != nil && len(*req.AssigneeCustomName) > 100 {
 		http.Error(w, "Assignee Name too long", http.StatusBadRequest)
 		return
+	}
+
+	if req.Sensitive != nil {
+		// Security Check: Only Managers (Admin/Owner) can toggle sensitivity
+		if role != "owner" && role != "admin" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	cmd := port.UpdateTicketCmd{
@@ -761,7 +769,7 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify access via parent ticket
-	if _, _, ok := h.getTicketAndVerifyAccess(w, r, file.TicketID); !ok {
+	if _, _, _, ok := h.getTicketAndVerifyAccess(w, r, file.TicketID); !ok {
 		return
 	}
 
@@ -783,37 +791,37 @@ func (h *TicketHandler) GetTicketFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *TicketHandler) getTicketAndVerifyAccess(w http.ResponseWriter, r *http.Request, ticketID uuid.UUID) (*domain.Ticket, *domain.User, bool) {
+func (h *TicketHandler) getTicketAndVerifyAccess(w http.ResponseWriter, r *http.Request, ticketID uuid.UUID) (*domain.Ticket, *domain.User, string, bool) {
 	ticket, err := h.service.GetTicket(r.Context(), ticketID)
 	if err != nil {
 		h.logger.Error("failed to get ticket", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, false
+		return nil, nil, "", false
 	}
 	if ticket == nil {
 		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return nil, nil, false
+		return nil, nil, "", false
 	}
 
 	user := middleware.GetUser(r.Context())
 	if user == nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return nil, nil, false
+		return nil, nil, "", false
 	}
 
 	role, err := h.orgRepo.GetMemberRole(r.Context(), ticket.OrganizationID, user.ID)
 	if err != nil {
 		h.logger.Error("failed to get member role", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return nil, nil, false
+		return nil, nil, "", false
 	}
 
 	if role == "" {
 		http.Error(w, "Ticket not found", http.StatusNotFound)
-		return nil, nil, false
+		return nil, nil, "", false
 	}
 
-	return ticket, user, true
+	return ticket, user, role, true
 }
 
 // configureBodyLimit sets the MaxBytesReader based on Content-Type.
