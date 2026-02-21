@@ -99,6 +99,9 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Optimization: Track if auth was already checked via query param to avoid redundant DB call
+	authChecked := false
+
 	// 0. DoS Prevention: Check Organization Access via Query Param
 	// This allows rejecting unauthorized requests BEFORE reading/parsing the body
 	if orgIDStr := r.URL.Query().Get("organization_id"); orgIDStr != "" {
@@ -113,6 +116,7 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
+		authChecked = true
 	}
 
 	// Limit request size to 1MB to prevent DoS
@@ -148,9 +152,15 @@ func (h *ScheduledTaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Security Check: Only Admin/Owner can create tasks
-	if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
+	// Skip if already checked (and confirmed matching).
+	// Safety: authChecked is true ONLY if query param was present AND authorized.
+	// The mismatch check above ensures req.OrganizationID == queryParamOrgID.
+	// Therefore, req.OrganizationID is authorized.
+	if !authChecked {
+		if err := h.checkAdminOrOwner(r.Context(), user.ID, req.OrganizationID); err != nil {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
 	}
 
 	cmd := port.CreateScheduledTaskCmd{
