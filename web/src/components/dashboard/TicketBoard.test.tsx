@@ -118,4 +118,37 @@ describe('TicketBoard', () => {
     expect(screen.getByText('Done')).toBeInTheDocument();
     expect(screen.queryByText('In Progress')).not.toBeInTheDocument();
   });
+
+  it('renders accessible elements', () => {
+    render(
+      <BrowserRouter>
+        <TicketBoard
+            tickets={mockTickets}
+            isLoading={false}
+            error={null}
+            density="standard"
+            onOpenNewTicket={() => {}}
+        />
+      </BrowserRouter>
+    );
+
+    // Columns should have h2 headings
+    const headings = screen.getAllByRole('heading', { level: 2 });
+    expect(headings.length).toBeGreaterThan(0);
+    expect(headings[0]).toHaveTextContent('New');
+
+    // Tickets should be list items
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems.length).toBeGreaterThan(0);
+
+    // Tickets should use h3 for titles
+    const cardHeadings = screen.getAllByRole('heading', { level: 3 });
+    expect(cardHeadings.length).toBeGreaterThan(0);
+    expect(cardHeadings[0]).toHaveTextContent('Test Ticket 1');
+
+    // Tickets should be links with accessible names
+    // The accessible name is derived from the link content: Priority + Date + Title + Assignee
+    const link = screen.getByRole('link', { name: /Test Ticket 1/i });
+    expect(link).toHaveAttribute('href', '/tickets/1');
+  });
 });
