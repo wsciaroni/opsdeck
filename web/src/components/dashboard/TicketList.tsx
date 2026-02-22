@@ -4,8 +4,9 @@ import { StatusBadge, PriorityLabel } from '../TicketAttributes';
 import EmptyState from '../EmptyState';
 import { Inbox, Plus } from 'lucide-react';
 import clsx from 'clsx';
-import { memo, useState, useEffect } from 'react';
+import { memo } from 'react';
 import { formatDate } from '../../utils';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 export type Density = 'compact' | 'standard' | 'comfortable';
 
@@ -27,23 +28,6 @@ const METADATA_FONT_SIZE_CLASSES: Record<Density, string> = {
   standard: 'text-xs',
   comfortable: 'text-sm',
 };
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.matchMedia('(min-width: 768px)').matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  return isDesktop;
-}
 
 interface TicketListProps {
   tickets: Ticket[] | undefined;
